@@ -2,110 +2,335 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Family Tasks</title>
+  <title>Family Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg: #f5f7fb;
+      --accent: #4f46e5;
+      --accent-soft: #eef2ff;
+      --accent-strong: #4338ca;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-soft: #e5e7eb;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      margin: 0;
+      min-height: 100vh;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
+      background: radial-gradient(circle at top, #e0f2fe, #f5f7fb 55%);
+      color: var(--text-main);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 1.5rem 1rem;
     }
-    h1 {
+
+    .app {
+      width: 100%;
+      max-width: 640px;
+      margin: auto;
+    }
+
+    header {
       text-align: center;
+      margin-bottom: 1.5rem;
     }
+
+    header h1 {
+      font-size: 1.75rem;
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+
+    header h1 span {
+      color: var(--accent);
+    }
+
+    header p {
+      margin: 0.25rem 0 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.06),
+        0 0 0 1px rgba(148, 163, 184, 0.18);
+      padding: 1.25rem 1rem 1.1rem;
+    }
+
+    @media (min-width: 480px) {
+      .card {
+        padding: 1.5rem 1.5rem 1.25rem;
+      }
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-header h2 {
+      font-size: 1.1rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 500;
+      border: 1px solid rgba(129, 140, 248, 0.4);
+    }
+
+    .card-header span.helper-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
     #task-form {
       display: flex;
       gap: 0.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.85rem;
     }
+
     #task-input {
       flex: 1;
-      padding: 0.5rem;
-      font-size: 1rem;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
+
+    #task-input:focus {
+      border-color: var(--accent);
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3);
+    }
+
     #task-form button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
+      padding: 0.55rem 0.9rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 999px;
+      border: none;
       cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #ffffff;
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35);
+      white-space: nowrap;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.1s;
     }
+
+    #task-form button:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+      opacity: 0.9;
+    }
+
+    #empty-state {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      border-radius: 0.75rem;
+      border: 1px dashed rgba(148, 163, 184, 0.7);
+      padding: 0.6rem 0.75rem;
+      background: #f9fafb;
+      display: none; /* toggled via JS */
+      margin-bottom: 0.4rem;
+    }
+
     #task-list {
       list-style: none;
       padding: 0;
       margin: 0;
+      max-height: 380px;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
+
     #task-list li {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      margin-bottom: 0.3rem;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.6rem;
+      border-radius: 0.65rem;
+      border: 1px solid var(--border-soft);
+      background: #f9fafb;
+      margin-bottom: 0.45rem;
     }
+
+    .task-main {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-tag {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+
+    #task-list li span {
+      font-size: 0.92rem;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
     #task-list li button {
       border: none;
       background: none;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 1.05rem;
+      padding: 0.25rem;
+      border-radius: 999px;
+      transition: background 0.12s, transform 0.08s;
+      color: var(--danger);
+    }
+
+    #task-list li button:active {
+      transform: scale(0.93);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 0.9rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <h1>Family Tasks</h1>
+  <div class="app">
+    <header>
+      <h1>Family <span>Hub</span></h1>
+      <p>One shared list to keep everyone on the same page 💛</p>
+    </header>
 
-  <form id="task-form">
-    <input
-      id="task-input"
-      type="text"
-      placeholder="Add a new task..."
-      autocomplete="off"
-    />
-    <button type="submit">Add</button>
-  </form>
+    <section class="card" aria-label="Shared family tasks">
+      <div class="card-header">
+        <h2>Shared tasks <span class="pill">Today</span></h2>
+        <span class="helper-text">Add chores, reminders, or plans for everyone.</span>
+      </div>
 
-  <ul id="task-list"></ul>
+      <form id="task-form" autocomplete="off">
+        <input
+          id="task-input"
+          type="text"
+          placeholder="Example: Pick up milk after work"
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      <div id="empty-state">
+        No tasks yet. Add the first one and share this page with your family ✨
+      </div>
+
+      <ul id="task-list"></ul>
+    </section>
+
+    <footer>
+      Changes save on this device automatically. You can reuse the same page on
+      each phone.
+    </footer>
+  </div>
 
   <script>
     const form = document.getElementById("task-form");
     const input = document.getElementById("task-input");
     const list = document.getElementById("task-list");
+    const emptyState = document.getElementById("empty-state");
+    const STORAGE_KEY = "family_tasks";
+
+    function updateEmptyState() {
+      const hasTasks = list.querySelectorAll("li").length > 0;
+      emptyState.style.display = hasTasks ? "none" : "block";
+    }
 
     function loadTasks() {
-      const saved = localStorage.getItem("family_tasks");
-      if (!saved) return;
-      const tasks = JSON.parse(saved);
-      tasks.forEach(text => addTaskElement(text));
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        updateEmptyState();
+        return;
+      }
+      try {
+        const tasks = JSON.parse(saved);
+        tasks.forEach(text => addTaskElement(text));
+      } catch (e) {
+        console.error("Could not parse tasks", e);
+      }
+      updateEmptyState();
     }
 
     function saveTasks() {
       const texts = Array.from(
-        list.querySelectorAll("li span")
+        list.querySelectorAll("li span.task-text")
       ).map(span => span.textContent);
-      localStorage.setItem("family_tasks", JSON.stringify(texts));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(texts));
+      updateEmptyState();
     }
 
     function addTaskElement(text) {
       const li = document.createElement("li");
 
+      const main = document.createElement("div");
+      main.className = "task-main";
+
+      const tag = document.createElement("div");
+      tag.className = "task-tag";
+
       const span = document.createElement("span");
+      span.className = "task-text";
       span.textContent = text;
-      li.appendChild(span);
+
+      main.appendChild(tag);
+      main.appendChild(span);
 
       const delBtn = document.createElement("button");
       delBtn.type = "button";
       delBtn.textContent = "✕";
+      delBtn.setAttribute("aria-label", "Delete task");
       delBtn.addEventListener("click", () => {
         li.remove();
         saveTasks();
       });
-      li.appendChild(delBtn);
 
+      li.appendChild(main);
+      li.appendChild(delBtn);
       list.appendChild(li);
     }
 
     form.addEventListener("submit", (event) => {
-      event.preventDefault(); // stop page reload
+      event.preventDefault();
       const text = input.value.trim();
       if (!text) return;
       addTaskElement(text);

@@ -16,6 +16,9 @@
       --border-soft: #e5e7eb;
       --danger: #ef4444;
       --done-text: #9ca3af;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #b91c1c;
     }
 
     * { box-sizing: border-box; }
@@ -40,7 +43,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.75rem;
     }
 
     header h1 {
@@ -57,6 +60,17 @@
       margin: 0.25rem 0 0;
       font-size: 0.9rem;
       color: var(--text-muted);
+    }
+
+    #error-banner {
+      display: none;
+      margin: 0 0 0.75rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.6rem;
+      border: 1px solid var(--error-border);
+      background: var(--error-bg);
+      color: var(--error-text);
+      font-size: 0.8rem;
     }
 
     .layout {
@@ -455,6 +469,8 @@
       <p>Shared color-coded calendar + task list for the whole family ✨</p>
     </header>
 
+    <div id="error-banner"></div>
+
     <div class="layout">
       <!-- Calendar FIRST (main focus) -->
       <section class="card calendar-card" aria-label="Family calendar">
@@ -548,22 +564,45 @@
       onSnapshot
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-    // 🔒 Your Firebase config (from Firebase console)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
-      authDomain: "leo2025-4c8a6.firebaseapp.com",
-      projectId: "leo2025-4c8a6",
-      storageBucket: "leo2025-4c8a6.firebasestorage.app",
-      messagingSenderId: "17689554146",
-      appId: "1:17689554146:web:30f171a704ea83ce6282bb",
-      measurementId: "G-6BWXTN2ZQC"
-    };
+    const errorBanner = document.getElementById("error-banner");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const tasksCollection = collection(db, "tasks");
+    function showError(message) {
+      if (!errorBanner) return;
+      errorBanner.textContent = message;
+      errorBanner.style.display = "block";
+    }
 
-    const STORAGE_KEY = "family_hub_tasks"; // only used for potential migration
+    function clearError() {
+      if (!errorBanner) return;
+      errorBanner.textContent = "";
+      errorBanner.style.display = "none";
+    }
+
+    let app, db, tasksCollection;
+    let firebaseReady = false;
+
+    try {
+      // Your Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
+        authDomain: "leo2025-4c8a6.firebaseapp.com",
+        projectId: "leo2025-4c8a6",
+        storageBucket: "leo2025-4c8a6.firebasestorage.app",
+        messagingSenderId: "17689554146",
+        appId: "1:17689554146:web:30f171a704ea83ce6282bb",
+        measurementId: "G-6BWXTN2ZQC"
+      };
+
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      tasksCollection = collection(db, "tasks");
+      firebaseReady = true;
+    } catch (e) {
+      console.error("Firebase init error", e);
+      showError("Problem initializing the shared database. Tasks will not sync.");
+    }
+
+    const STORAGE_KEY = "family_hub_tasks";
 
     let tasks = [];
     let currentMonth = new Date();
@@ -616,20 +655,31 @@
     }
 
     function migrateLocalTasksIfAny() {
-      // Right now we just clear any old local-only data
       localStorage.removeItem(STORAGE_KEY);
     }
 
     function subscribeToTasks() {
-      onSnapshot(tasksCollection, (snapshot) => {
-        tasks = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data()
-        }));
-        updateEmptyState();
-        renderTaskList();
-        renderCalendar();
-      });
+      if (!firebaseReady) {
+        showError("Firebase is not ready. Tasks will not sync.");
+        return;
+      }
+      onSnapshot(
+        tasksCollection,
+        (snapshot) => {
+          clearError();
+          tasks = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data()
+          }));
+          updateEmptyState();
+          renderTaskList();
+          renderCalendar();
+        },
+        (error) => {
+          console.error("onSnapshot error", error);
+          showError("Can't load tasks from the cloud right now.");
+        }
+      );
     }
 
     function updateEmptyState() {
@@ -657,8 +707,13 @@
         delBtn.type = "button";
         delBtn.textContent = "✕";
         delBtn.addEventListener("click", async () => {
-          if (!task.id) return;
-          await deleteDoc(doc(db, "tasks", task.id));
+          if (!task.id || !firebaseReady) return;
+          try {
+            await deleteDoc(doc(db, "tasks", task.id));
+          } catch (e) {
+            console.error("Delete error", e);
+            showError("Couldn't delete task. Check your connection.");
+          }
         });
         top.appendChild(delBtn);
 
@@ -707,10 +762,15 @@
           statusSelect.appendChild(opt);
         });
         statusSelect.addEventListener("change", async () => {
-          if (!task.id) return;
-          await updateDoc(doc(db, "tasks", task.id), {
-            status: statusSelect.value
-          });
+          if (!task.id || !firebaseReady) return;
+          try {
+            await updateDoc(doc(db, "tasks", task.id), {
+              status: statusSelect.value
+            });
+          } catch (e) {
+            console.error("Status update error", e);
+            showError("Couldn't update status. Check your connection.");
+          }
         });
 
         actions.appendChild(statusLabel);
@@ -893,6 +953,11 @@
         return;
       }
 
+      if (!firebaseReady) {
+        showError("Firebase is not ready, can't save to cloud.");
+        return;
+      }
+
       const newTask = {
         text,
         owner: owner || "Family",
@@ -901,24 +966,36 @@
         status: "Not started"
       };
 
-      await addDoc(tasksCollection, newTask);
-
-      taskInput.value = "";
-      ownerInput.value = "";
-      // keep date + frequency as-is
+      try {
+        clearError();
+        await addDoc(tasksCollection, newTask);
+        alert("Task saved to cloud! Open this link on another device to see it.");
+        taskInput.value = "";
+        ownerInput.value = "";
+      } catch (e) {
+        console.error("Add task error", e);
+        showError("Error saving task: " + (e.message || e));
+        alert("Error saving task: " + (e.message || e));
+      }
     }
 
-    addButton.addEventListener("click", handleAddTask);
+    if (addButton) {
+      addButton.addEventListener("click", handleAddTask);
+    } else {
+      showError("Add button not found in the page.");
+    }
 
-    prevMonthBtn.addEventListener("click", () => {
-      currentMonth.setMonth(currentMonth.getMonth() - 1);
-      renderCalendar();
-    });
+    if (prevMonthBtn && nextMonthBtn) {
+      prevMonthBtn.addEventListener("click", () => {
+        currentMonth.setMonth(currentMonth.getMonth() - 1);
+        renderCalendar();
+      });
 
-    nextMonthBtn.addEventListener("click", () => {
-      currentMonth.setMonth(currentMonth.getMonth() + 1);
-      renderCalendar();
-    });
+      nextMonthBtn.addEventListener("click", () => {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        renderCalendar();
+      });
+    }
 
     migrateLocalTasksIfAny();
     subscribeToTasks();

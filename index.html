@@ -259,9 +259,7 @@
     }
 
     .tag.owner {
-      border-color: rgba(59, 130, 246, 0.8);
-      background: #dbeafe;
-      color: #1d4ed8;
+      color: #1f2933;
     }
 
     .tag.date {
@@ -454,7 +452,7 @@
   <div class="app">
     <header>
       <h1>Family <span>Hub</span></h1>
-      <p>Color-coded calendar + task list for the whole family ✨</p>
+      <p>Shared color-coded calendar + task list for the whole family ✨</p>
     </header>
 
     <div class="layout">
@@ -533,12 +531,39 @@
     </div>
 
     <footer>
-      Tasks are saved on this device. Open the same link on each phone to have a shared view.
+      Tasks are stored in the cloud. Open this link on any device to see the same calendar.
     </footer>
   </div>
 
-  <script>
-    const STORAGE_KEY = "family_hub_tasks";
+  <!-- Firebase + app logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      doc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+    // 🔒 Your Firebase config (from Firebase console)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
+      authDomain: "leo2025-4c8a6.firebaseapp.com",
+      projectId: "leo2025-4c8a6",
+      storageBucket: "leo2025-4c8a6.firebasestorage.app",
+      messagingSenderId: "17689554146",
+      appId: "1:17689554146:web:30f171a704ea83ce6282bb",
+      measurementId: "G-6BWXTN2ZQC"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const tasksCollection = collection(db, "tasks");
+
+    const STORAGE_KEY = "family_hub_tasks"; // only used for potential migration
 
     let tasks = [];
     let currentMonth = new Date();
@@ -590,45 +615,21 @@
       return ownerColorMap[key];
     }
 
-    function migrateTasks(raw) {
-      if (!Array.isArray(raw)) return [];
-      if (raw.length === 0) return [];
-      if (typeof raw[0] === "string") {
-        return raw.map((text, index) => ({
-          id: Date.now() + index,
-          text,
-          owner: "Family",
-          startDate: todayStr(),
-          frequency: "once",
-          status: "Not started",
+    function migrateLocalTasksIfAny() {
+      // Right now we just clear any old local-only data
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function subscribeToTasks() {
+      onSnapshot(tasksCollection, (snapshot) => {
+        tasks = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data()
         }));
-      }
-      return raw;
-    }
-
-    function loadTasks() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) {
-        tasks = [];
-      } else {
-        try {
-          const parsed = JSON.parse(saved);
-          tasks = migrateTasks(parsed);
-        } catch (e) {
-          console.error("Could not parse tasks", e);
-          tasks = [];
-        }
-      }
-      saveTasks(); // normalize format
-      updateEmptyState();
-      renderTaskList();
-      renderCalendar();
-    }
-
-    function saveTasks() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      updateEmptyState();
-      renderCalendar();
+        updateEmptyState();
+        renderTaskList();
+        renderCalendar();
+      });
     }
 
     function updateEmptyState() {
@@ -655,10 +656,9 @@
         delBtn.className = "delete-btn";
         delBtn.type = "button";
         delBtn.textContent = "✕";
-        delBtn.addEventListener("click", () => {
-          tasks = tasks.filter((t) => t.id !== task.id);
-          saveTasks();
-          renderTaskList();
+        delBtn.addEventListener("click", async () => {
+          if (!task.id) return;
+          await deleteDoc(doc(db, "tasks", task.id));
         });
         top.appendChild(delBtn);
 
@@ -668,8 +668,9 @@
         const ownerTag = document.createElement("span");
         ownerTag.className = "tag owner";
         ownerTag.textContent = task.owner || "Family";
-        ownerTag.style.borderColor = getOwnerColor(task.owner);
-        ownerTag.style.backgroundColor = getOwnerColor(task.owner) + "20";
+        const ownerColor = getOwnerColor(task.owner);
+        ownerTag.style.borderColor = ownerColor;
+        ownerTag.style.backgroundColor = ownerColor + "20";
         meta.appendChild(ownerTag);
 
         const dateTag = document.createElement("span");
@@ -705,10 +706,11 @@
           if (task.status === s) opt.selected = true;
           statusSelect.appendChild(opt);
         });
-        statusSelect.addEventListener("change", () => {
-          task.status = statusSelect.value;
-          saveTasks();
-          renderTaskList(); // so gray/strikethrough updates
+        statusSelect.addEventListener("change", async () => {
+          if (!task.id) return;
+          await updateDoc(doc(db, "tasks", task.id), {
+            status: statusSelect.value
+          });
         });
 
         actions.appendChild(statusLabel);
@@ -821,11 +823,6 @@
         const tasksForDay = tasks.filter((t) => occursOnDate(t, cellDate));
 
         if (tasksForDay.length > 0) {
-          const ownersForDay = Array.from(
-            new Set(
-              tasksForDay.map((t) => getOwnerKey(t.owner))
-            )
-          );
           const mainOwner = tasksForDay[0].owner;
           ownerBadge.style.backgroundColor = getOwnerColor(mainOwner);
           cell.classList.add("has-task");
@@ -885,7 +882,7 @@
       }
     }
 
-    function handleAddTask() {
+    async function handleAddTask() {
       const text = taskInput.value.trim();
       const owner = ownerInput.value.trim();
       const startDate = dateInput.value || todayStr();
@@ -897,20 +894,18 @@
       }
 
       const newTask = {
-        id: Date.now() + Math.random().toString(16).slice(2),
         text,
         owner: owner || "Family",
         startDate,
         frequency,
-        status: "Not started",
+        status: "Not started"
       };
 
-      tasks.push(newTask);
-      saveTasks();
-      renderTaskList();
+      await addDoc(tasksCollection, newTask);
 
       taskInput.value = "";
       ownerInput.value = "";
+      // keep date + frequency as-is
     }
 
     addButton.addEventListener("click", handleAddTask);
@@ -925,7 +920,8 @@
       renderCalendar();
     });
 
-    loadTasks();
+    migrateLocalTasksIfAny();
+    subscribeToTasks();
   </script>
 </body>
 </html>

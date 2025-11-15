@@ -1,35 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Family Hub</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Family Tasks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+    }
+    #task-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    #task-input {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    #task-form button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #task-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 0.3rem;
+    }
+    #task-list li button {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+  </style>
 </head>
 <body>
-<h1>Family Hub</h1>
+  <h1>Family Tasks</h1>
 
-<section id="today">
-<h2>Today's Baby Schedule</h2>
-<div id="schedule-list"></div>
-<input id="schedule-input" placeholder="Add item...">
-<button onclick="addSchedule()">Add</button>
-</section>
+  <form id="task-form">
+    <input
+      id="task-input"
+      type="text"
+      placeholder="Add a new task..."
+      autocomplete="off"
+    />
+    <button type="submit">Add</button>
+  </form>
 
-<section id="tasks">
-<h2>Family Tasks</h2>
-<div id="task-list"></div>
-<input id="task-input" placeholder="New task...">
-<button onclick="addTask()">Add</button>
-</section>
+  <ul id="task-list"></ul>
 
-<section id="events">
-<h2>Events</h2>
-<div id="event-list"></div>
-<input id="event-input" placeholder="Add event...">
-<button onclick="addEvent()">Add</button>
-</section>
+  <script>
+    const form = document.getElementById("task-form");
+    const input = document.getElementById("task-input");
+    const list = document.getElementById("task-list");
 
-<script src="app.js"></script>
+    function loadTasks() {
+      const saved = localStorage.getItem("family_tasks");
+      if (!saved) return;
+      const tasks = JSON.parse(saved);
+      tasks.forEach(text => addTaskElement(text));
+    }
+
+    function saveTasks() {
+      const texts = Array.from(
+        list.querySelectorAll("li span")
+      ).map(span => span.textContent);
+      localStorage.setItem("family_tasks", JSON.stringify(texts));
+    }
+
+    function addTaskElement(text) {
+      const li = document.createElement("li");
+
+      const span = document.createElement("span");
+      span.textContent = text;
+      li.appendChild(span);
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", () => {
+        li.remove();
+        saveTasks();
+      });
+      li.appendChild(delBtn);
+
+      list.appendChild(li);
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault(); // stop page reload
+      const text = input.value.trim();
+      if (!text) return;
+      addTaskElement(text);
+      saveTasks();
+      input.value = "";
+      input.focus();
+    });
+
+    loadTasks();
+  </script>
 </body>
 </html>

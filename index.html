@@ -619,4 +619,258 @@
         delBtn.type = "button";
         delBtn.textContent = "✕";
         delBtn.addEventListener("click", () => {
-          tasks
+          tasks = tasks.filter((t) => t.id !== task.id);
+          saveTasks();
+          renderTaskList();
+        });
+        top.appendChild(delBtn);
+
+        const meta = document.createElement("div");
+        meta.className = "task-meta";
+
+        const ownerTag = document.createElement("span");
+        ownerTag.className = "tag owner";
+        ownerTag.textContent = task.owner || "Family";
+        meta.appendChild(ownerTag);
+
+        const dateTag = document.createElement("span");
+        dateTag.className = "tag date";
+        dateTag.textContent = task.startDate || todayStr();
+        meta.appendChild(dateTag);
+
+        const freqTag = document.createElement("span");
+        freqTag.className = "tag frequency";
+        const freqText =
+          task.frequency === "daily"
+            ? "Daily"
+            : task.frequency === "weekly"
+            ? "Weekly"
+            : task.frequency === "monthly"
+            ? "Monthly"
+            : "One time";
+        freqTag.textContent = freqText;
+        meta.appendChild(freqTag);
+
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+
+        const statusLabel = document.createElement("span");
+        statusLabel.className = "status-label";
+        statusLabel.textContent = "Status: ";
+
+        const statusSelect = document.createElement("select");
+        ["Not started", "In progress", "Done"].forEach((s) => {
+          const opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          if (task.status === s) opt.selected = true;
+          statusSelect.appendChild(opt);
+        });
+        statusSelect.addEventListener("change", () => {
+          task.status = statusSelect.value;
+          saveTasks();
+        });
+
+        actions.appendChild(statusLabel);
+        actions.appendChild(statusSelect);
+
+        li.appendChild(top);
+        li.appendChild(meta);
+        li.appendChild(actions);
+
+        taskListEl.appendChild(li);
+      });
+    }
+
+    function isSameDay(d1, d2) {
+      return (
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate()
+      );
+    }
+
+    function occursOnDate(task, date) {
+      if (!task.startDate) return false;
+      const start = new Date(task.startDate + "T00:00:00");
+      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      if (target < start) return false;
+
+      switch (task.frequency) {
+        case "daily":
+          return true;
+        case "weekly": {
+          const diffMs = target - start;
+          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+          return diffDays % 7 === 0;
+        }
+        case "monthly":
+          return target.getDate() === start.getDate();
+        default: // once
+          return isSameDay(target, start);
+      }
+    }
+
+    function formatMonthLabel(date) {
+      return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    }
+
+    function renderCalendar() {
+      calendarGrid.innerHTML = "";
+
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      monthLabel.textContent = formatMonthLabel(currentMonth);
+
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      dayNames.forEach((name) => {
+        const div = document.createElement("div");
+        div.className = "day-name";
+        div.textContent = name;
+        calendarGrid.appendChild(div);
+      });
+
+      const firstDayOfMonth = new Date(year, month, 1);
+      const startDay = firstDayOfMonth.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevMonthDays = new Date(year, month, 0).getDate();
+
+      const totalCells = startDay + daysInMonth;
+      const rowsNeeded = Math.ceil(totalCells / 7);
+      const cellsTotal = rowsNeeded * 7;
+
+      const today = new Date();
+      const todayStrVal = today.toISOString().slice(0, 10);
+
+      for (let i = 0; i < cellsTotal; i++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "day-cell";
+
+        let cellDate;
+        if (i < startDay) {
+          const dayNum = prevMonthDays - (startDay - 1 - i);
+          cellDate = new Date(year, month - 1, dayNum);
+          cell.classList.add("other-month");
+        } else if (i >= startDay + daysInMonth) {
+          const dayNum = i - (startDay + daysInMonth) + 1;
+          cellDate = new Date(year, month + 1, dayNum);
+          cell.classList.add("other-month");
+        } else {
+          const dayNum = i - startDay + 1;
+          cellDate = new Date(year, month, dayNum);
+        }
+
+        const cellDateStr = cellDate.toISOString().slice(0, 10);
+        cell.dataset.date = cellDateStr;
+
+        const numEl = document.createElement("div");
+        numEl.className = "day-number";
+        numEl.textContent = cellDate.getDate();
+        cell.appendChild(numEl);
+
+        const dotEl = document.createElement("div");
+        dotEl.className = "day-dots";
+        cell.appendChild(dotEl);
+
+        if (tasks.some((t) => occursOnDate(t, cellDate))) {
+          cell.classList.add("has-task");
+        }
+
+        if (cellDateStr === todayStrVal) {
+          cell.classList.add("today");
+        }
+
+        if (selectedDateStr && selectedDateStr === cellDateStr) {
+          cell.classList.add("selected");
+        }
+
+        cell.addEventListener("click", () => {
+          selectedDateStr = cellDateStr;
+          calendarGrid
+            .querySelectorAll(".day-cell.selected")
+            .forEach((c) => c.classList.remove("selected"));
+          cell.classList.add("selected");
+          showTasksForDate(cellDateStr);
+        });
+
+        calendarGrid.appendChild(cell);
+      }
+    }
+
+    function showTasksForDate(dateStr) {
+      const dateObj = new Date(dateStr + "T00:00:00");
+      dayTitle.textContent =
+        "Tasks for " +
+        dateObj.toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+
+      dayTaskList.innerHTML = "";
+      const tasksForDay = tasks.filter((t) => occursOnDate(t, dateObj));
+
+      if (!tasksForDay.length) {
+        const li = document.createElement("li");
+        li.textContent = "No tasks for this day.";
+        dayTaskList.appendChild(li);
+        return;
+      }
+
+      tasksForDay.forEach((task) => {
+        const li = document.createElement("li");
+        li.textContent =
+          (task.owner ? task.owner + " – " : "") +
+          (task.text || "(no description)") +
+          " (" +
+          (task.status || "Not started") +
+          ")";
+        dayTaskList.appendChild(li);
+      });
+    }
+
+    function handleAddTask() {
+      const text = taskInput.value.trim();
+      const owner = ownerInput.value.trim();
+      const startDate = dateInput.value || todayStr();
+      const frequency = freqSelect.value || "once";
+
+      if (!text) {
+        alert("Please type a task first.");
+        return;
+      }
+
+      const newTask = {
+        id: Date.now() + Math.random().toString(16).slice(2),
+        text,
+        owner: owner || "Family",
+        startDate,
+        frequency,
+        status: "Not started",
+      };
+
+      tasks.push(newTask);
+      saveTasks();
+      renderTaskList();
+
+      taskInput.value = "";
+      ownerInput.value = "";
+    }
+
+    addButton.addEventListener("click", handleAddTask);
+
+    prevMonthBtn.addEventListener("click", () => {
+      currentMonth.setMonth(currentMonth.getMonth() - 1);
+      renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener("click", () => {
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>

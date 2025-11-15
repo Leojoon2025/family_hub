@@ -15,12 +15,9 @@
       --text-muted: #6b7280;
       --border-soft: #e5e7eb;
       --danger: #ef4444;
-      --success: #16a34a;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -129,16 +126,15 @@
       }
     }
 
-    .field-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-bottom: 0.15rem;
-    }
-
     .field {
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
     }
 
     input[type="text"],
@@ -161,7 +157,7 @@
       box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
     }
 
-    #task-form button[type="submit"] {
+    #add-button {
       margin-top: 0.2rem;
       padding: 0.55rem 0.9rem;
       font-size: 0.9rem;
@@ -173,18 +169,18 @@
       color: #ffffff;
       box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35);
       white-space: nowrap;
-      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.1s;
       width: 100%;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.1s;
     }
 
     @media (min-width: 600px) {
-      #task-form button[type="submit"] {
+      #add-button {
         width: auto;
         justify-self: flex-end;
       }
     }
 
-    #task-form button[type="submit"]:active {
+    #add-button:active {
       transform: translateY(1px) scale(0.98);
       box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
       opacity: 0.9;
@@ -258,16 +254,16 @@
       color: #1d4ed8;
     }
 
-    .tag.frequency {
-      border-color: rgba(129, 140, 248, 0.8);
-      background: #e0e7ff;
-      color: #4338ca;
-    }
-
     .tag.date {
       border-color: rgba(16, 185, 129, 0.8);
       background: #d1fae5;
       color: #047857;
+    }
+
+    .tag.frequency {
+      border-color: rgba(129, 140, 248, 0.8);
+      background: #e0e7ff;
+      color: #4338ca;
     }
 
     .task-actions {
@@ -276,12 +272,6 @@
       justify-content: space-between;
       gap: 0.5rem;
       margin-top: 0.25rem;
-    }
-
-    .task-actions select {
-      font-size: 0.8rem;
-      padding: 0.35rem 0.5rem;
-      border-radius: 999px;
     }
 
     .status-label {
@@ -308,13 +298,8 @@
 
     /* Calendar */
 
-    .calendar-card {
-      flex: 1.1;
-    }
-
-    .tasks-card {
-      flex: 1;
-    }
+    .calendar-card { flex: 1.1; }
+    .tasks-card { flex: 1; }
 
     .calendar-header {
       display: flex;
@@ -382,7 +367,7 @@
       justify-content: flex-start;
       cursor: pointer;
       background: #f9fafb;
-      transition: background 0.12s, border-color 0.12s, transform 0.05s;
+      transition: background 0.12s, border-color 0.12s;
     }
 
     .day-cell.other-month {
@@ -465,7 +450,7 @@
           Add a task, who owns it, when it starts, and how often it repeats.
         </p>
 
-        <form id="task-form" autocomplete="off">
+        <form id="task-form" autocomplete="off" onsubmit="return false;">
           <div class="field">
             <span class="field-label">Task</span>
             <input
@@ -499,7 +484,7 @@
             </select>
           </div>
 
-          <button type="submit">Add</button>
+          <button type="button" id="add-button">Add</button>
         </form>
 
         <div id="empty-state">
@@ -512,4 +497,126 @@
       <!-- Right: calendar -->
       <section class="card calendar-card" aria-label="Family calendar">
         <div class="calendar-header">
-          <div class="calendar-hea
+          <div class="calendar-header-title">
+            <span>Calendar</span>
+            <div class="calendar-month" id="calendar-month-label"></div>
+          </div>
+          <div class="calendar-nav">
+            <button type="button" id="prev-month">‹</button>
+            <button type="button" id="next-month">›</button>
+          </div>
+        </div>
+
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- JS fills this -->
+        </div>
+
+        <div class="day-details">
+          <div class="day-details-title" id="day-title">Select a day to see tasks.</div>
+          <ul id="day-task-list"></ul>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      Tasks are saved on this device. Open the same link on each phone to have a shared view.
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "family_hub_tasks";
+
+    let tasks = [];
+    let currentMonth = new Date();
+    currentMonth.setDate(1);
+    let selectedDateStr = null;
+
+    const taskInput = document.getElementById("task-input");
+    const ownerInput = document.getElementById("task-owner");
+    const dateInput = document.getElementById("task-date");
+    const freqSelect = document.getElementById("task-frequency");
+    const addButton = document.getElementById("add-button");
+    const taskListEl = document.getElementById("task-list");
+    const emptyStateEl = document.getElementById("empty-state");
+    const calendarGrid = document.getElementById("calendar-grid");
+    const monthLabel = document.getElementById("calendar-month-label");
+    const dayTitle = document.getElementById("day-title");
+    const dayTaskList = document.getElementById("day-task-list");
+    const prevMonthBtn = document.getElementById("prev-month");
+    const nextMonthBtn = document.getElementById("next-month");
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    if (dateInput) {
+      dateInput.value = todayStr();
+    }
+
+    function migrateTasks(raw) {
+      if (!Array.isArray(raw)) return [];
+      if (raw.length === 0) return [];
+      if (typeof raw[0] === "string") {
+        return raw.map((text, index) => ({
+          id: Date.now() + index,
+          text,
+          owner: "Family",
+          startDate: todayStr(),
+          frequency: "once",
+          status: "Not started",
+        }));
+      }
+      return raw;
+    }
+
+    function loadTasks() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        tasks = [];
+      } else {
+        try {
+          const parsed = JSON.parse(saved);
+          tasks = migrateTasks(parsed);
+        } catch (e) {
+          console.error("Could not parse tasks", e);
+          tasks = [];
+        }
+      }
+      saveTasks(); // normalize format
+      updateEmptyState();
+      renderTaskList();
+      renderCalendar();
+    }
+
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      updateEmptyState();
+      renderCalendar();
+      if (selectedDateStr) {
+        showTasksForDate(selectedDateStr);
+      }
+    }
+
+    function updateEmptyState() {
+      emptyStateEl.style.display = tasks.length ? "none" : "block";
+    }
+
+    function renderTaskList() {
+      taskListEl.innerHTML = "";
+      tasks.forEach((task) => {
+        const li = document.createElement("li");
+
+        const top = document.createElement("div");
+        top.className = "task-top";
+
+        const title = document.createElement("div");
+        title.className = "task-title";
+        title.textContent = task.text || "(no description)";
+        top.appendChild(title);
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.type = "button";
+        delBtn.textContent = "✕";
+        delBtn.addEventListener("click", () => {
+          tasks

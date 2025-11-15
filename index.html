@@ -15,6 +15,7 @@
       --text-muted: #6b7280;
       --border-soft: #e5e7eb;
       --danger: #ef4444;
+      --done-text: #9ca3af;
     }
 
     * { box-sizing: border-box; }
@@ -33,7 +34,7 @@
 
     .app {
       width: 100%;
-      max-width: 900px;
+      max-width: 1000px;
       margin: auto;
     }
 
@@ -110,6 +111,10 @@
       margin-bottom: 0.75rem;
     }
 
+    /* Make calendar dominant */
+    .calendar-card { flex: 1.7; }
+    .tasks-card { flex: 1; max-width: 360px; }
+
     /* Form */
 
     #task-form {
@@ -121,7 +126,7 @@
 
     @media (min-width: 600px) {
       #task-form {
-        grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
         align-items: center;
       }
     }
@@ -233,6 +238,11 @@
       word-break: break-word;
     }
 
+    .task-title.done {
+      color: var(--done-text);
+      text-decoration: line-through;
+    }
+
     .task-meta {
       display: flex;
       flex-wrap: wrap;
@@ -298,9 +308,6 @@
 
     /* Calendar */
 
-    .calendar-card { flex: 1.1; }
-    .tasks-card { flex: 1; }
-
     .calendar-header {
       display: flex;
       align-items: center;
@@ -345,7 +352,7 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 0.2rem;
+      gap: 0.25rem;
       font-size: 0.75rem;
     }
 
@@ -357,14 +364,12 @@
     }
 
     .day-cell {
-      border-radius: 0.45rem;
+      border-radius: 0.6rem;
       border: 1px solid transparent;
-      padding: 0.25rem 0.15rem 0.3rem;
-      min-height: 2.3rem;
+      padding: 0.25rem 0.2rem 0.35rem;
+      min-height: 3.3rem;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
       cursor: pointer;
       background: #f9fafb;
       transition: background 0.12s, border-color 0.12s;
@@ -374,21 +379,58 @@
       opacity: 0.35;
     }
 
+    .day-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      margin-bottom: 0.15rem;
+    }
+
     .day-number {
       font-size: 0.8rem;
-      margin-bottom: 0.1rem;
     }
 
-    .day-dots {
-      width: 0.4rem;
-      height: 0.4rem;
+    .owner-badge {
+      width: 0.6rem;
+      height: 0.6rem;
       border-radius: 999px;
-      background: var(--accent);
-      opacity: 0;
+      flex-shrink: 0;
     }
 
-    .day-cell.has-task .day-dots {
-      opacity: 1;
+    .day-tasks-inline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      max-height: 2.3rem;
+      overflow: hidden;
+    }
+
+    .day-task-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .day-task-dot {
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .day-task-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .day-task-text.done {
+      color: var(--done-text);
+      text-decoration: line-through;
     }
 
     .day-cell.selected {
@@ -398,33 +440,6 @@
 
     .day-cell.today {
       border-color: rgba(96, 165, 250, 0.8);
-    }
-
-    .day-details {
-      margin-top: 0.7rem;
-      font-size: 0.8rem;
-    }
-
-    .day-details-title {
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    #day-task-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      max-height: 150px;
-      overflow-y: auto;
-    }
-
-    #day-task-list li {
-      padding: 0.3rem 0.15rem;
-      border-bottom: 1px solid rgba(229, 231, 235, 0.8);
-    }
-
-    #day-task-list li:last-child {
-      border-bottom: none;
     }
 
     footer {
@@ -439,11 +454,33 @@
   <div class="app">
     <header>
       <h1>Family <span>Hub</span></h1>
-      <p>Tasks + calendar so everyone knows what’s happening ✨</p>
+      <p>Color-coded calendar + task list for the whole family ✨</p>
     </header>
 
     <div class="layout">
-      <!-- Left: tasks -->
+      <!-- Calendar FIRST (main focus) -->
+      <section class="card calendar-card" aria-label="Family calendar">
+        <div class="calendar-header">
+          <div class="calendar-header-title">
+            <span>Calendar</span>
+            <div class="calendar-month" id="calendar-month-label"></div>
+          </div>
+          <div class="calendar-nav">
+            <button type="button" id="prev-month">‹</button>
+            <button type="button" id="next-month">›</button>
+          </div>
+        </div>
+
+        <div class="helper-text">
+          Each day shows tasks inside the square. Color = owner. Gray + strikethrough = done.
+        </div>
+
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- JS fills this -->
+        </div>
+      </section>
+
+      <!-- Tasks SECOND (smaller) -->
       <section class="card tasks-card" aria-label="Shared family tasks">
         <h2>Tasks <span class="pill">List</span></h2>
         <p class="helper-text">
@@ -493,29 +530,6 @@
 
         <ul id="task-list"></ul>
       </section>
-
-      <!-- Right: calendar -->
-      <section class="card calendar-card" aria-label="Family calendar">
-        <div class="calendar-header">
-          <div class="calendar-header-title">
-            <span>Calendar</span>
-            <div class="calendar-month" id="calendar-month-label"></div>
-          </div>
-          <div class="calendar-nav">
-            <button type="button" id="prev-month">‹</button>
-            <button type="button" id="next-month">›</button>
-          </div>
-        </div>
-
-        <div class="calendar-grid" id="calendar-grid">
-          <!-- JS fills this -->
-        </div>
-
-        <div class="day-details">
-          <div class="day-details-title" id="day-title">Select a day to see tasks.</div>
-          <ul id="day-task-list"></ul>
-        </div>
-      </section>
     </div>
 
     <footer>
@@ -540,8 +554,6 @@
     const emptyStateEl = document.getElementById("empty-state");
     const calendarGrid = document.getElementById("calendar-grid");
     const monthLabel = document.getElementById("calendar-month-label");
-    const dayTitle = document.getElementById("day-title");
-    const dayTaskList = document.getElementById("day-task-list");
     const prevMonthBtn = document.getElementById("prev-month");
     const nextMonthBtn = document.getElementById("next-month");
 
@@ -551,6 +563,31 @@
 
     if (dateInput) {
       dateInput.value = todayStr();
+    }
+
+    // Owner -> color mapping (stable for the session)
+    const ownerColorMap = {};
+    const ownerColors = [
+      "#f97316", // orange
+      "#22c55e", // green
+      "#3b82f6", // blue
+      "#ec4899", // pink
+      "#a855f7", // purple
+      "#eab308"  // yellow
+    ];
+
+    function getOwnerKey(owner) {
+      const trimmed = (owner || "").trim();
+      return trimmed ? trimmed.toLowerCase() : "family";
+    }
+
+    function getOwnerColor(owner) {
+      const key = getOwnerKey(owner);
+      if (!ownerColorMap[key]) {
+        const idx = Object.keys(ownerColorMap).length % ownerColors.length;
+        ownerColorMap[key] = ownerColors[idx];
+      }
+      return ownerColorMap[key];
     }
 
     function migrateTasks(raw) {
@@ -592,9 +629,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       updateEmptyState();
       renderCalendar();
-      if (selectedDateStr) {
-        showTasksForDate(selectedDateStr);
-      }
     }
 
     function updateEmptyState() {
@@ -612,6 +646,9 @@
         const title = document.createElement("div");
         title.className = "task-title";
         title.textContent = task.text || "(no description)";
+        if (task.status === "Done") {
+          title.classList.add("done");
+        }
         top.appendChild(title);
 
         const delBtn = document.createElement("button");
@@ -631,6 +668,8 @@
         const ownerTag = document.createElement("span");
         ownerTag.className = "tag owner";
         ownerTag.textContent = task.owner || "Family";
+        ownerTag.style.borderColor = getOwnerColor(task.owner);
+        ownerTag.style.backgroundColor = getOwnerColor(task.owner) + "20";
         meta.appendChild(ownerTag);
 
         const dateTag = document.createElement("span");
@@ -669,6 +708,7 @@
         statusSelect.addEventListener("change", () => {
           task.status = statusSelect.value;
           saveTasks();
+          renderTaskList(); // so gray/strikethrough updates
         });
 
         actions.appendChild(statusLabel);
@@ -764,17 +804,65 @@
         const cellDateStr = cellDate.toISOString().slice(0, 10);
         cell.dataset.date = cellDateStr;
 
+        const header = document.createElement("div");
+        header.className = "day-header";
+
         const numEl = document.createElement("div");
         numEl.className = "day-number";
         numEl.textContent = cellDate.getDate();
-        cell.appendChild(numEl);
+        header.appendChild(numEl);
 
-        const dotEl = document.createElement("div");
-        dotEl.className = "day-dots";
-        cell.appendChild(dotEl);
+        const ownerBadge = document.createElement("div");
+        ownerBadge.className = "owner-badge";
+        header.appendChild(ownerBadge);
 
-        if (tasks.some((t) => occursOnDate(t, cellDate))) {
+        cell.appendChild(header);
+
+        const tasksForDay = tasks.filter((t) => occursOnDate(t, cellDate));
+
+        if (tasksForDay.length > 0) {
+          const ownersForDay = Array.from(
+            new Set(
+              tasksForDay.map((t) => getOwnerKey(t.owner))
+            )
+          );
+          const mainOwner = tasksForDay[0].owner;
+          ownerBadge.style.backgroundColor = getOwnerColor(mainOwner);
           cell.classList.add("has-task");
+
+          const tasksInline = document.createElement("div");
+          tasksInline.className = "day-tasks-inline";
+
+          tasksForDay.slice(0, 3).forEach((task) => {
+            const row = document.createElement("div");
+            row.className = "day-task-inline";
+
+            const dot = document.createElement("div");
+            dot.className = "day-task-dot";
+            dot.style.backgroundColor = getOwnerColor(task.owner);
+            row.appendChild(dot);
+
+            const text = document.createElement("span");
+            text.className = "day-task-text";
+            text.textContent = task.text || "(no description)";
+            if (task.status === "Done") {
+              text.classList.add("done");
+            }
+            row.appendChild(text);
+
+            tasksInline.appendChild(row);
+          });
+
+          if (tasksForDay.length > 3) {
+            const more = document.createElement("span");
+            more.className = "day-task-text";
+            more.textContent = `+${tasksForDay.length - 3} more`;
+            tasksInline.appendChild(more);
+          }
+
+          cell.appendChild(tasksInline);
+        } else {
+          ownerBadge.style.backgroundColor = "transparent";
         }
 
         if (cellDateStr === todayStrVal) {
@@ -791,43 +879,10 @@
             .querySelectorAll(".day-cell.selected")
             .forEach((c) => c.classList.remove("selected"));
           cell.classList.add("selected");
-          showTasksForDate(cellDateStr);
         });
 
         calendarGrid.appendChild(cell);
       }
-    }
-
-    function showTasksForDate(dateStr) {
-      const dateObj = new Date(dateStr + "T00:00:00");
-      dayTitle.textContent =
-        "Tasks for " +
-        dateObj.toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        });
-
-      dayTaskList.innerHTML = "";
-      const tasksForDay = tasks.filter((t) => occursOnDate(t, dateObj));
-
-      if (!tasksForDay.length) {
-        const li = document.createElement("li");
-        li.textContent = "No tasks for this day.";
-        dayTaskList.appendChild(li);
-        return;
-      }
-
-      tasksForDay.forEach((task) => {
-        const li = document.createElement("li");
-        li.textContent =
-          (task.owner ? task.owner + " – " : "") +
-          (task.text || "(no description)") +
-          " (" +
-          (task.status || "Not started") +
-          ")";
-        dayTaskList.appendChild(li);
-      });
     }
 
     function handleAddTask() {

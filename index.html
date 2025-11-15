@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Family Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Family Hub</h1>
+
+<section id="today">
+<h2>Today's Baby Schedule</h2>
+<div id="schedule-list"></div>
+<input id="schedule-input" placeholder="Add item...">
+<button onclick="addSchedule()">Add</button>
+</section>
+
+<section id="tasks">
+<h2>Family Tasks</h2>
+<div id="task-list"></div>
+<input id="task-input" placeholder="New task...">
+<button onclick="addTask()">Add</button>
+</section>
+
+<section id="events">
+<h2>Events</h2>
+<div id="event-list"></div>
+<input id="event-input" placeholder="Add event...">
+<button onclick="addEvent()">Add</button>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

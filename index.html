@@ -15,6 +15,7 @@
       --text-muted: #6b7280;
       --border-soft: #e5e7eb;
       --danger: #ef4444;
+      --success: #16a34a;
     }
 
     * {
@@ -30,22 +31,22 @@
       display: flex;
       align-items: stretch;
       justify-content: center;
-      padding: 1.5rem 1rem;
+      padding: 1.5rem 1rem 2.5rem;
     }
 
     .app {
       width: 100%;
-      max-width: 640px;
+      max-width: 900px;
       margin: auto;
     }
 
     header {
       text-align: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     header h1 {
-      font-size: 1.75rem;
+      font-size: 1.7rem;
       margin: 0;
       letter-spacing: 0.03em;
     }
@@ -58,6 +59,19 @@
       margin: 0.25rem 0 0;
       font-size: 0.9rem;
       color: var(--text-muted);
+    }
+
+    .layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .layout {
+        flex-direction: row;
+        align-items: flex-start;
+      }
     }
 
     .card {
@@ -75,17 +89,9 @@
       }
     }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .card-header h2 {
+    .card h2 {
       font-size: 1.1rem;
-      margin: 0;
+      margin: 0 0 0.75rem;
       display: flex;
       align-items: center;
       gap: 0.4rem;
@@ -101,36 +107,62 @@
       border: 1px solid rgba(129, 140, 248, 0.4);
     }
 
-    .card-header span.helper-text {
+    .helper-text {
       font-size: 0.8rem;
       color: var(--text-muted);
-      text-align: right;
+      margin-bottom: 0.75rem;
     }
+
+    /* Form */
 
     #task-form {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr;
       gap: 0.5rem;
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.9rem;
     }
 
-    #task-input {
-      flex: 1;
-      padding: 0.6rem 0.75rem;
-      font-size: 0.95rem;
-      border-radius: 999px;
+    @media (min-width: 600px) {
+      #task-form {
+        grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr));
+        align-items: center;
+      }
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.85rem;
+      border-radius: 0.6rem;
       border: 1px solid var(--border-soft);
       background: #f9fafb;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      width: 100%;
     }
 
-    #task-input:focus {
+    input:focus,
+    select:focus {
       border-color: var(--accent);
       background: #ffffff;
-      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3);
+      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
     }
 
-    #task-form button {
+    #task-form button[type="submit"] {
+      margin-top: 0.2rem;
       padding: 0.55rem 0.9rem;
       font-size: 0.9rem;
       font-weight: 600;
@@ -142,9 +174,17 @@
       box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35);
       white-space: nowrap;
       transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.1s;
+      width: 100%;
     }
 
-    #task-form button:active {
+    @media (min-width: 600px) {
+      #task-form button[type="submit"] {
+        width: auto;
+        justify-self: flex-end;
+      }
+    }
+
+    #task-form button[type="submit"]:active {
       transform: translateY(1px) scale(0.98);
       box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
       opacity: 0.9;
@@ -157,24 +197,25 @@
       border: 1px dashed rgba(148, 163, 184, 0.7);
       padding: 0.6rem 0.75rem;
       background: #f9fafb;
-      display: none; /* toggled via JS */
+      display: none;
       margin-bottom: 0.4rem;
     }
+
+    /* Task list */
 
     #task-list {
       list-style: none;
       padding: 0;
       margin: 0;
-      max-height: 380px;
+      max-height: 260px;
       overflow-y: auto;
       scrollbar-width: thin;
     }
 
     #task-list li {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
+      flex-direction: column;
+      gap: 0.35rem;
       padding: 0.55rem 0.6rem;
       border-radius: 0.65rem;
       border: 1px solid var(--border-soft);
@@ -182,48 +223,228 @@
       margin-bottom: 0.45rem;
     }
 
-    .task-main {
+    .task-top {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.5rem;
-      flex: 1;
-      min-width: 0;
     }
 
-    .task-tag {
-      width: 0.55rem;
-      height: 0.55rem;
-      border-radius: 999px;
-      background: var(--accent);
-      opacity: 0.85;
-      flex-shrink: 0;
-    }
-
-    #task-list li span {
-      font-size: 0.92rem;
+    .task-title {
+      font-size: 0.9rem;
+      font-weight: 500;
       word-wrap: break-word;
       word-break: break-word;
     }
 
-    #task-list li button {
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .tag {
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: #f3f4f6;
+    }
+
+    .tag.owner {
+      border-color: rgba(59, 130, 246, 0.8);
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .tag.frequency {
+      border-color: rgba(129, 140, 248, 0.8);
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .tag.date {
+      border-color: rgba(16, 185, 129, 0.8);
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .task-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .task-actions select {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    .status-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .delete-btn {
       border: none;
       background: none;
       cursor: pointer;
-      font-size: 1.05rem;
+      font-size: 1rem;
       padding: 0.25rem;
       border-radius: 999px;
       transition: background 0.12s, transform 0.08s;
       color: var(--danger);
+      align-self: flex-end;
     }
 
-    #task-list li button:active {
+    .delete-btn:active {
       transform: scale(0.93);
       background: rgba(248, 113, 113, 0.12);
     }
 
+    /* Calendar */
+
+    .calendar-card {
+      flex: 1.1;
+    }
+
+    .tasks-card {
+      flex: 1;
+    }
+
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .calendar-header-title {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .calendar-header-title span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .calendar-month {
+      font-weight: 600;
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    .calendar-nav button {
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: #f9fafb;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .calendar-nav button:active {
+      background: #e5e7eb;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.2rem;
+      font-size: 0.75rem;
+    }
+
+    .day-name {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding-bottom: 0.2rem;
+    }
+
+    .day-cell {
+      border-radius: 0.45rem;
+      border: 1px solid transparent;
+      padding: 0.25rem 0.15rem 0.3rem;
+      min-height: 2.3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      cursor: pointer;
+      background: #f9fafb;
+      transition: background 0.12s, border-color 0.12s, transform 0.05s;
+    }
+
+    .day-cell.other-month {
+      opacity: 0.35;
+    }
+
+    .day-number {
+      font-size: 0.8rem;
+      margin-bottom: 0.1rem;
+    }
+
+    .day-dots {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: 0;
+    }
+
+    .day-cell.has-task .day-dots {
+      opacity: 1;
+    }
+
+    .day-cell.selected {
+      border-color: var(--accent);
+      background: #e0e7ff;
+    }
+
+    .day-cell.today {
+      border-color: rgba(96, 165, 250, 0.8);
+    }
+
+    .day-details {
+      margin-top: 0.7rem;
+      font-size: 0.8rem;
+    }
+
+    .day-details-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    #day-task-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    #day-task-list li {
+      padding: 0.3rem 0.15rem;
+      border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+    }
+
+    #day-task-list li:last-child {
+      border-bottom: none;
+    }
+
     footer {
       text-align: center;
-      margin-top: 0.9rem;
+      margin-top: 1rem;
       font-size: 0.78rem;
       color: var(--text-muted);
     }
@@ -233,113 +454,62 @@
   <div class="app">
     <header>
       <h1>Family <span>Hub</span></h1>
-      <p>One shared list to keep everyone on the same page 💛</p>
+      <p>Tasks + calendar so everyone knows what’s happening ✨</p>
     </header>
 
-    <section class="card" aria-label="Shared family tasks">
-      <div class="card-header">
-        <h2>Shared tasks <span class="pill">Today</span></h2>
-        <span class="helper-text">Add chores, reminders, or plans for everyone.</span>
-      </div>
+    <div class="layout">
+      <!-- Left: tasks -->
+      <section class="card tasks-card" aria-label="Shared family tasks">
+        <h2>Tasks <span class="pill">List</span></h2>
+        <p class="helper-text">
+          Add a task, who owns it, when it starts, and how often it repeats.
+        </p>
 
-      <form id="task-form" autocomplete="off">
-        <input
-          id="task-input"
-          type="text"
-          placeholder="Example: Pick up milk after work"
-        />
-        <button type="submit">Add</button>
-      </form>
+        <form id="task-form" autocomplete="off">
+          <div class="field">
+            <span class="field-label">Task</span>
+            <input
+              id="task-input"
+              type="text"
+              placeholder="Example: Take out the garbage"
+            />
+          </div>
 
-      <div id="empty-state">
-        No tasks yet. Add the first one and share this page with your family ✨
-      </div>
+          <div class="field">
+            <span class="field-label">Owner</span>
+            <input
+              id="task-owner"
+              type="text"
+              placeholder="Who? (e.g. Sara)"
+            />
+          </div>
 
-      <ul id="task-list"></ul>
-    </section>
+          <div class="field">
+            <span class="field-label">Start date</span>
+            <input id="task-date" type="date" />
+          </div>
 
-    <footer>
-      Changes save on this device automatically. You can reuse the same page on
-      each phone.
-    </footer>
-  </div>
+          <div class="field">
+            <span class="field-label">Frequency</span>
+            <select id="task-frequency">
+              <option value="once">One time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
 
-  <script>
-    const form = document.getElementById("task-form");
-    const input = document.getElementById("task-input");
-    const list = document.getElementById("task-list");
-    const emptyState = document.getElementById("empty-state");
-    const STORAGE_KEY = "family_tasks";
+          <button type="submit">Add</button>
+        </form>
 
-    function updateEmptyState() {
-      const hasTasks = list.querySelectorAll("li").length > 0;
-      emptyState.style.display = hasTasks ? "none" : "block";
-    }
+        <div id="empty-state">
+          No tasks yet. Add the first one and they’ll show up here and on the calendar.
+        </div>
 
-    function loadTasks() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) {
-        updateEmptyState();
-        return;
-      }
-      try {
-        const tasks = JSON.parse(saved);
-        tasks.forEach(text => addTaskElement(text));
-      } catch (e) {
-        console.error("Could not parse tasks", e);
-      }
-      updateEmptyState();
-    }
+        <ul id="task-list"></ul>
+      </section>
 
-    function saveTasks() {
-      const texts = Array.from(
-        list.querySelectorAll("li span.task-text")
-      ).map(span => span.textContent);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(texts));
-      updateEmptyState();
-    }
-
-    function addTaskElement(text) {
-      const li = document.createElement("li");
-
-      const main = document.createElement("div");
-      main.className = "task-main";
-
-      const tag = document.createElement("div");
-      tag.className = "task-tag";
-
-      const span = document.createElement("span");
-      span.className = "task-text";
-      span.textContent = text;
-
-      main.appendChild(tag);
-      main.appendChild(span);
-
-      const delBtn = document.createElement("button");
-      delBtn.type = "button";
-      delBtn.textContent = "✕";
-      delBtn.setAttribute("aria-label", "Delete task");
-      delBtn.addEventListener("click", () => {
-        li.remove();
-        saveTasks();
-      });
-
-      li.appendChild(main);
-      li.appendChild(delBtn);
-      list.appendChild(li);
-    }
-
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const text = input.value.trim();
-      if (!text) return;
-      addTaskElement(text);
-      saveTasks();
-      input.value = "";
-      input.focus();
-    });
-
-    loadTasks();
-  </script>
-</body>
-</html>
+      <!-- Right: calendar -->
+      <section class="card calendar-card" aria-label="Family calendar">
+        <div class="calendar-header">
+          <div class="calendar-hea

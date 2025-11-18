@@ -105,8 +105,14 @@
 
     .view-toggle {
       display: flex;
+      align-items: center;
       gap: 0.5rem;
       margin-bottom: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .view-toggle span {
+      color: var(--text-muted);
     }
 
     .view-btn {
@@ -115,6 +121,7 @@
       background: #f3f4f6;
       border: 1px solid var(--border-soft);
       font-size: 0.75rem;
+      cursor: pointer;
     }
 
     .view-btn.active {
@@ -127,12 +134,13 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 0.25rem;
+      font-size: 0.78rem;
     }
 
     .day-name {
       text-align: center;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
     }
 
     .day-cell {
@@ -141,6 +149,8 @@
       padding: 0.3rem;
       min-height: 3.6rem;
       border: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
     }
 
     .day-cell.other-month {
@@ -151,6 +161,13 @@
       border-color: #93c5fd;
     }
 
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.15rem;
+    }
+
     .owner-badge {
       width: 0.55rem;
       height: 0.55rem;
@@ -159,19 +176,23 @@
     }
 
     .day-tasks-inline {
-      margin-top: 0.2rem;
+      margin-top: 0.1rem;
       font-size: 0.72rem;
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
-      max-height: 2.4rem;
+      gap: 0.12rem;
+      max-height: 2.8rem;
       overflow: hidden;
     }
 
     .day-task-inline {
       display: flex;
-      gap: 0.3rem;
-      align-items: center;
+      gap: 0.25rem;
+      align-items: baseline;
+    }
+
+    .day-task-time {
+      font-weight: 500;
     }
 
     .day-task-text.done {
@@ -188,14 +209,54 @@
       background: #f9fafb;
       border: 1px solid var(--border-soft);
     }
+
+    #task-list .title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    #task-list .title.done {
+      color: var(--done-text);
+      text-decoration: line-through;
+    }
+
+    #task-list .meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    #task-form {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+      margin-bottom: 0.7rem;
+    }
+
+    #task-form input,
+    #task-form select {
+      padding: 0.45rem 0.5rem;
+      border-radius: 0.55rem;
+      border: 1px solid var(--border-soft);
+      font-size: 0.85rem;
+    }
+
+    #task-form input:focus,
+    #task-form select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
     #add-button {
-      margin-top: 0.4rem;
-      padding: 0.6rem;
+      margin-top: 0.2rem;
+      padding: 0.55rem;
       border-radius: 999px;
       background: var(--accent);
       color: white;
       border: none;
       font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -209,7 +270,6 @@
 
   <div class="layout">
     <section class="card calendar-card">
-
       <div class="calendar-header">
         <div id="calendar-month-label"></div>
         <div class="calendar-nav">
@@ -219,6 +279,7 @@
       </div>
 
       <div class="view-toggle">
+        <span>View:</span>
         <button class="view-btn active" id="view-month">Month</button>
         <button class="view-btn" id="view-week">Week</button>
       </div>
@@ -233,6 +294,7 @@
         <input id="task-input" placeholder="Task" />
         <input id="task-owner" placeholder="Owner (Sara)" />
         <input id="task-date" type="date" />
+        <input id="task-time" type="time" />
         <select id="task-frequency">
           <option value="once">One time</option>
           <option value="daily">Daily</option>
@@ -276,7 +338,10 @@
 
   const monthLabel = document.getElementById("calendar-month-label");
   const grid = document.getElementById("calendar-grid");
+  const viewMonthBtn = document.getElementById("view-month");
+  const viewWeekBtn = document.getElementById("view-week");
 
+  // Listen to tasks in Firestore
   onSnapshot(tasksCollection, snap => {
     tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderCalendar();
@@ -284,8 +349,10 @@
   });
 
   function occursOnDate(task, date) {
-    const start = new Date(task.startDate);
-    const d = new Date(date);
+    const start = new Date(task.startDate + "T00:00:00");
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (isNaN(start)) return false;
 
     if (task.frequency === "daily") return d >= start;
     if (task.frequency === "weekly") {
@@ -294,6 +361,26 @@
     }
     if (task.frequency === "monthly") return d.getDate() === start.getDate();
     return d.toDateString() === start.toDateString();
+  }
+
+  function formatMonthLabel(date) {
+    return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  function formatWeekLabel(start, end) {
+    const s = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const e = end.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return `Week of ${s} – ${e}`;
+  }
+
+  function getTimeMinutes(task) {
+    if (!task.startTime) return 24 * 60; // no time -> goes last
+    const parts = task.startTime.split(":");
+    if (parts.length !== 2) return 24 * 60;
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (isNaN(h) || isNaN(m)) return 24 * 60;
+    return h * 60 + m;
   }
 
   function renderCalendar() {
@@ -316,28 +403,27 @@
   function renderMonthView() {
     const year = currentBaseDate.getFullYear();
     const month = currentBaseDate.getMonth();
-    monthLabel.textContent = currentBaseDate.toLocaleDateString(undefined, {
-      month: "long",
-      year: "numeric"
-    });
+    monthLabel.textContent = formatMonthLabel(currentBaseDate);
 
     const first = new Date(year, month, 1);
     const startDay = first.getDay();
     const daysInMonth = new Date(year, month+1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
 
     const cells = [];
-    // previous month padding
+
     for (let i = 0; i < startDay; i++) {
-      const d = new Date(year, month, i - startDay + 1);
+      const d = new Date(year, month - 1, prevMonthDays - (startDay - 1 - i));
       cells.push({ date: d, other: true });
     }
 
-    // this month
     for (let day = 1; day <= daysInMonth; day++) {
       cells.push({ date: new Date(year, month, day), other: false });
     }
 
-    cells.forEach(c => addDayCell(c.date, c.other));
+    const todayStr = new Date().toDateString();
+
+    cells.forEach(c => addDayCell(c.date, c.other, todayStr));
   }
 
   function renderWeekView() {
@@ -347,39 +433,50 @@
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
 
-    monthLabel.textContent =
-      `Week of ${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
+    monthLabel.textContent = formatWeekLabel(start, end);
+
+    const todayStr = new Date().toDateString();
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      addDayCell(d, false);
+      addDayCell(d, false, todayStr);
     }
   }
 
-  function addDayCell(date, otherMonth) {
+  const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
+  const ownerMap = {};
+  function getOwnerColor(owner = "Family") {
+    const key = (owner || "Family").toLowerCase();
+    if (!ownerMap[key]) {
+      ownerMap[key] = ownerColors[Object.keys(ownerMap).length % ownerColors.length];
+    }
+    return ownerMap[key];
+  }
+
+  function addDayCell(date, otherMonth, todayStr) {
     const cell = document.createElement("div");
     cell.className = "day-cell";
     if (otherMonth) cell.classList.add("other-month");
-
-    const today = new Date().toDateString();
-    if (date.toDateString() === today) {
-      cell.classList.add("today");
-    }
+    if (date.toDateString() === todayStr) cell.classList.add("today");
 
     const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.innerHTML = `
-      <span>${date.getDate()}</span>
-      <span class="owner-badge"></span>
-    `;
+    header.className = "day-header";
+    const daySpan = document.createElement("span");
+    daySpan.textContent = date.getDate();
+    const badge = document.createElement("span");
+    badge.className = "owner-badge";
+    header.appendChild(daySpan);
+    header.appendChild(badge);
     cell.appendChild(header);
 
-    const matches = tasks.filter(t => occursOnDate(t, date));
+    // tasks for this date, sorted by time
+    const matches = tasks
+      .filter(t => occursOnDate(t, date))
+      .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
+
     if (matches.length) {
-      const ownerColor = getOwnerColor(matches[0].owner);
-      header.querySelector(".owner-badge").style.background = ownerColor;
+      badge.style.background = getOwnerColor(matches[0].owner);
 
       const wrap = document.createElement("div");
       wrap.className = "day-tasks-inline";
@@ -387,12 +484,11 @@
       matches.slice(0,3).forEach(t => {
         const row = document.createElement("div");
         row.className = "day-task-inline";
-        const dot = document.createElement("div");
-        dot.style.width = "0.45rem";
-        dot.style.height = "0.45rem";
-        dot.style.borderRadius = "999px";
-        dot.style.background = getOwnerColor(t.owner);
-        row.appendChild(dot);
+
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "day-task-time";
+        timeSpan.textContent = t.startTime ? t.startTime : "•";
+        row.appendChild(timeSpan);
 
         const label = document.createElement("span");
         label.className = "day-task-text";
@@ -403,20 +499,16 @@
         wrap.appendChild(row);
       });
 
+      if (matches.length > 3) {
+        const more = document.createElement("span");
+        more.textContent = `+${matches.length - 3} more`;
+        wrap.appendChild(more);
+      }
+
       cell.appendChild(wrap);
     }
 
     grid.appendChild(cell);
-  }
-
-  const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
-  const ownerMap = {};
-  function getOwnerColor(owner) {
-    const key = owner.toLowerCase();
-    if (!ownerMap[key]) {
-      ownerMap[key] = ownerColors[Object.keys(ownerMap).length % ownerColors.length];
-    }
-    return ownerMap[key];
   }
 
   function renderTaskList() {
@@ -426,17 +518,15 @@
       const li = document.createElement("li");
 
       const title = document.createElement("div");
+      title.className = "title";
+      if (t.status === "Done") title.classList.add("done");
       title.textContent = t.text;
-      if (t.status === "Done") {
-        title.style.textDecoration = "line-through";
-        title.style.color = "#9ca3af";
-      }
       li.appendChild(title);
 
       const meta = document.createElement("div");
-      meta.style.fontSize = "0.75rem";
-      meta.style.color = "#6b7280";
-      meta.textContent = `${t.owner} • ${t.startDate} • ${t.frequency}`;
+      meta.className = "meta";
+      const timePart = t.startTime ? ` • ${t.startTime}` : "";
+      meta.textContent = `${t.owner || "Family"} • ${t.startDate}${timePart} • ${t.frequency}`;
       li.appendChild(meta);
 
       const status = document.createElement("select");
@@ -456,10 +546,12 @@
     });
   }
 
+  // Add task
   document.getElementById("add-button").onclick = async () => {
     const text = document.getElementById("task-input").value.trim();
     const owner = document.getElementById("task-owner").value.trim();
     const date = document.getElementById("task-date").value;
+    const time = document.getElementById("task-time").value;
     const freq = document.getElementById("task-frequency").value;
 
     if (!text || !date) {
@@ -471,28 +563,32 @@
       text,
       owner: owner || "Family",
       startDate: date,
+      startTime: time || "",
       frequency: freq,
       status: "Not started"
     });
 
     document.getElementById("task-input").value = "";
     document.getElementById("task-owner").value = "";
+    document.getElementById("task-time").value = "";
   };
 
-  document.getElementById("view-month").onclick = () => {
+  // View buttons
+  viewMonthBtn.onclick = () => {
     viewMode = "month";
-    document.getElementById("view-month").classList.add("active");
-    document.getElementById("view-week").classList.remove("active");
+    viewMonthBtn.classList.add("active");
+    viewWeekBtn.classList.remove("active");
     renderCalendar();
   };
 
-  document.getElementById("view-week").onclick = () => {
+  viewWeekBtn.onclick = () => {
     viewMode = "week";
-    document.getElementById("view-week").classList.add("active");
-    document.getElementById("view-month").classList.remove("active");
+    viewWeekBtn.classList.add("active");
+    viewMonthBtn.classList.remove("active");
     renderCalendar();
   };
 
+  // Prev / Next
   document.getElementById("prev-month").onclick = () => {
     if (viewMode === "month") {
       currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
@@ -511,6 +607,7 @@
     renderCalendar();
   };
 
+  // Initial render
   renderCalendar();
 </script>
 

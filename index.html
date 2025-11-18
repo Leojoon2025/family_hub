@@ -16,9 +16,6 @@
       --border-soft: #e5e7eb;
       --danger: #ef4444;
       --done-text: #9ca3af;
-      --error-bg: #fef2f2;
-      --error-border: #fecaca;
-      --error-text: #b91c1c;
     }
 
     * { box-sizing: border-box; }
@@ -62,17 +59,6 @@
       color: var(--text-muted);
     }
 
-    #error-banner {
-      display: none;
-      margin: 0 0 0.75rem;
-      padding: 0.45rem 0.6rem;
-      border-radius: 0.6rem;
-      border: 1px solid var(--error-border);
-      background: var(--error-bg);
-      color: var(--error-text);
-      font-size: 0.8rem;
-    }
-
     .layout {
       display: flex;
       flex-direction: column;
@@ -95,1017 +81,438 @@
       padding: 1.25rem 1rem 1.1rem;
     }
 
-    @media (min-width: 480px) {
-      .card {
-        padding: 1.5rem 1.5rem 1.25rem;
-      }
-    }
-
-    .card h2 {
-      font-size: 1.1rem;
-      margin: 0 0 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .pill {
-      font-size: 0.75rem;
-      padding: 0.1rem 0.45rem;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-      font-weight: 500;
-      border: 1px solid rgba(129, 140, 248, 0.4);
-    }
-
-    .helper-text {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-    }
-
-    /* Make calendar dominant */
     .calendar-card { flex: 1.7; }
     .tasks-card { flex: 1; max-width: 360px; }
-
-    /* Form */
-
-    #task-form {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.5rem;
-      margin-bottom: 0.9rem;
-    }
-
-    @media (min-width: 600px) {
-      #task-form {
-        grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
-        align-items: center;
-      }
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-
-    .field-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    input[type="text"],
-    input[type="date"],
-    select {
-      padding: 0.5rem 0.65rem;
-      font-size: 0.85rem;
-      border-radius: 0.6rem;
-      border: 1px solid var(--border-soft);
-      background: #f9fafb;
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-      width: 100%;
-    }
-
-    input:focus,
-    select:focus {
-      border-color: var(--accent);
-      background: #ffffff;
-      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
-    }
-
-    #add-button {
-      margin-top: 0.2rem;
-      padding: 0.55rem 0.9rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #ffffff;
-      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35);
-      white-space: nowrap;
-      width: 100%;
-      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.1s;
-    }
-
-    @media (min-width: 600px) {
-      #add-button {
-        width: auto;
-        justify-self: flex-end;
-      }
-    }
-
-    #add-button:active {
-      transform: translateY(1px) scale(0.98);
-      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-      opacity: 0.9;
-    }
-
-    #empty-state {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      border-radius: 0.75rem;
-      border: 1px dashed rgba(148, 163, 184, 0.7);
-      padding: 0.6rem 0.75rem;
-      background: #f9fafb;
-      display: none;
-      margin-bottom: 0.4rem;
-    }
-
-    /* Task list */
-
-    #task-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 260px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-
-    #task-list li {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      padding: 0.55rem 0.6rem;
-      border-radius: 0.65rem;
-      border: 1px solid var(--border-soft);
-      background: #f9fafb;
-      margin-bottom: 0.45rem;
-    }
-
-    .task-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
-
-    .task-title {
-      font-size: 0.9rem;
-      font-weight: 500;
-      word-wrap: break-word;
-      word-break: break-word;
-    }
-
-    .task-title.done {
-      color: var(--done-text);
-      text-decoration: line-through;
-    }
-
-    .task-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .tag {
-      padding: 0.1rem 0.45rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.8);
-      background: #f3f4f6;
-    }
-
-    .tag.owner {
-      color: #1f2933;
-    }
-
-    .tag.date {
-      border-color: rgba(16, 185, 129, 0.8);
-      background: #d1fae5;
-      color: #047857;
-    }
-
-    .tag.frequency {
-      border-color: rgba(129, 140, 248, 0.8);
-      background: #e0e7ff;
-      color: #4338ca;
-    }
-
-    .task-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-top: 0.25rem;
-    }
-
-    .status-label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .delete-btn {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.25rem;
-      border-radius: 999px;
-      transition: background 0.12s, transform 0.08s;
-      color: var(--danger);
-      align-self: flex-end;
-    }
-
-    .delete-btn:active {
-      transform: scale(0.93);
-      background: rgba(248, 113, 113, 0.12);
-    }
-
-    /* Calendar */
 
     .calendar-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .calendar-header-title {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-
-    .calendar-header-title span {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      margin-bottom: 0.6rem;
     }
 
     .calendar-month {
       font-weight: 600;
     }
 
-    .calendar-nav {
-      display: flex;
-      gap: 0.3rem;
-    }
-
     .calendar-nav button {
       border-radius: 999px;
       border: 1px solid var(--border-soft);
       background: #f9fafb;
-      padding: 0.25rem 0.55rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-
-    .calendar-nav button:active {
-      background: #e5e7eb;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.85rem;
     }
 
     .view-toggle {
       display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .view-toggle-label {
-      color: var(--text-muted);
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
     }
 
     .view-btn {
+      padding: 0.3rem 0.8rem;
       border-radius: 999px;
+      background: #f3f4f6;
       border: 1px solid var(--border-soft);
-      background: #f9fafb;
-      padding: 0.2rem 0.7rem;
       font-size: 0.75rem;
-      cursor: pointer;
-      transition: background 0.12s, border-color 0.12s, color 0.12s;
     }
 
     .view-btn.active {
       background: var(--accent);
+      color: white;
       border-color: var(--accent);
-      color: #ffffff;
     }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 0.25rem;
-      font-size: 0.75rem;
     }
 
     .day-name {
       text-align: center;
-      font-size: 0.72rem;
       color: var(--text-muted);
-      padding-bottom: 0.2rem;
+      font-size: 0.8rem;
     }
 
     .day-cell {
       border-radius: 0.6rem;
-      border: 1px solid transparent;
-      padding: 0.25rem 0.2rem 0.35rem;
-      min-height: 3.3rem;
-      display: flex;
-      flex-direction: column;
-      cursor: pointer;
       background: #f9fafb;
-      transition: background 0.12s, border-color 0.12s;
+      padding: 0.3rem;
+      min-height: 3.6rem;
+      border: 1px solid transparent;
     }
 
     .day-cell.other-month {
-      opacity: 0.35;
+      opacity: 0.3;
     }
 
-    .day-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.25rem;
-      margin-bottom: 0.15rem;
-    }
-
-    .day-number {
-      font-size: 0.8rem;
+    .day-cell.today {
+      border-color: #93c5fd;
     }
 
     .owner-badge {
-      width: 0.6rem;
-      height: 0.6rem;
+      width: 0.55rem;
+      height: 0.55rem;
       border-radius: 999px;
-      flex-shrink: 0;
+      background: transparent;
     }
 
     .day-tasks-inline {
+      margin-top: 0.2rem;
+      font-size: 0.72rem;
       display: flex;
       flex-direction: column;
       gap: 0.15rem;
-      max-height: 2.3rem;
+      max-height: 2.4rem;
       overflow: hidden;
     }
 
     .day-task-inline {
       display: flex;
+      gap: 0.3rem;
       align-items: center;
-      gap: 0.2rem;
-      font-size: 0.7rem;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-
-    .day-task-dot {
-      width: 0.45rem;
-      height: 0.45rem;
-      border-radius: 999px;
-      flex-shrink: 0;
-    }
-
-    .day-task-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .day-task-text.done {
-      color: var(--done-text);
       text-decoration: line-through;
+      color: var(--done-text);
     }
 
-    .day-cell.selected {
-      border-color: var(--accent);
-      background: #e0e7ff;
+    /* Tasks panel */
+    #task-list { padding: 0; margin: 0; list-style: none; }
+    #task-list li {
+      margin-bottom: 0.5rem;
+      padding: 0.6rem;
+      border-radius: 0.6rem;
+      background: #f9fafb;
+      border: 1px solid var(--border-soft);
     }
-
-    .day-cell.today {
-      border-color: rgba(96, 165, 250, 0.8);
-    }
-
-    footer {
-      text-align: center;
-      margin-top: 1rem;
-      font-size: 0.78rem;
-      color: var(--text-muted);
+    #add-button {
+      margin-top: 0.4rem;
+      padding: 0.6rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 600;
     }
   </style>
 </head>
+
 <body>
-  <div class="app">
-    <header>
-      <h1>Family <span>Hub</span></h1>
-      <p>Shared color-coded calendar + task list for the whole family ✨</p>
-    </header>
+<div class="app">
+  <header>
+    <h1>Family <span>Hub</span></h1>
+    <p>Shared calendar + tasks synced across all devices</p>
+  </header>
 
-    <div id="error-banner"></div>
+  <div class="layout">
+    <section class="card calendar-card">
 
-    <div class="layout">
-      <!-- Calendar FIRST (main focus) -->
-      <section class="card calendar-card" aria-label="Family calendar">
-        <div class="calendar-header">
-          <div class="calendar-header-title">
-            <span>Calendar</span>
-            <div class="calendar-month" id="calendar-month-label"></div>
-          </div>
-          <div class="calendar-nav">
-            <button type="button" id="prev-month">‹</button>
-            <button type="button" id="next-month">›</button>
-          </div>
+      <div class="calendar-header">
+        <div id="calendar-month-label"></div>
+        <div class="calendar-nav">
+          <button id="prev-month">‹</button>
+          <button id="next-month">›</button>
         </div>
+      </div>
 
-        <div class="view-toggle">
-          <span class="view-toggle-label">View:</span>
-          <button type="button" id="view-month" class="view-btn active">Month</button>
-          <button type="button" id="view-week" class="view-btn">Week</button>
-        </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="view-month">Month</button>
+        <button class="view-btn" id="view-week">Week</button>
+      </div>
 
-        <div class="helper-text">
-          Each day shows tasks inside the square. Color = owner. Gray + strikethrough = done.
-        </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </section>
 
-        <div class="calendar-grid" id="calendar-grid">
-          <!-- JS fills this -->
-        </div>
-      </section>
+    <section class="card tasks-card">
+      <h2>Tasks</h2>
 
-      <!-- Tasks SECOND (smaller) -->
-      <section class="card tasks-card" aria-label="Shared family tasks">
-        <h2>Tasks <span class="pill">List</span></h2>
-        <p class="helper-text">
-          Add a task, who owns it, when it starts, and how often it repeats.
-        </p>
+      <form id="task-form" onsubmit="return false;">
+        <input id="task-input" placeholder="Task" />
+        <input id="task-owner" placeholder="Owner (Sara)" />
+        <input id="task-date" type="date" />
+        <select id="task-frequency">
+          <option value="once">One time</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
 
-        <form id="task-form" autocomplete="off" onsubmit="return false;">
-          <div class="field">
-            <span class="field-label">Task</span>
-            <input
-              id="task-input"
-              type="text"
-              placeholder="Example: Take out the garbage"
-            />
-          </div>
+        <button id="add-button" type="button">Add</button>
+      </form>
 
-          <div class="field">
-            <span class="field-label">Owner</span>
-            <input
-              id="task-owner"
-              type="text"
-              placeholder="Who? (e.g. Sara)"
-            />
-          </div>
-
-          <div class="field">
-            <span class="field-label">Start date</span>
-            <input id="task-date" type="date" />
-          </div>
-
-          <div class="field">
-            <span class="field-label">Frequency</span>
-            <select id="task-frequency">
-              <option value="once">One time</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-
-          <button type="button" id="add-button">Add</button>
-        </form>
-
-        <div id="empty-state">
-          No tasks yet. Add the first one and they’ll show up here and on the calendar.
-        </div>
-
-        <ul id="task-list"></ul>
-      </section>
-    </div>
-
-    <footer>
-      Tasks are stored in the cloud. Open this link on any device to see the same calendar.
-    </footer>
+      <ul id="task-list"></ul>
+    </section>
   </div>
+</div>
 
-  <!-- Firebase + app logic -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      doc,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, updateDoc,
+    deleteDoc, doc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-    const errorBanner = document.getElementById("error-banner");
+  // --- Your Firebase config ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
+    authDomain: "leo2025-4c8a6.firebaseapp.com",
+    projectId: "leo2025-4c8a6",
+    storageBucket: "leo2025-4c8a6.firebasestorage.app",
+    messagingSenderId: "17689554146",
+    appId: "1:17689554146:web:30f171a704ea83ce6282bb",
+    measurementId: "G-6BWXTN2ZQC"
+  };
 
-    function showError(message) {
-      if (!errorBanner) return;
-      errorBanner.textContent = message;
-      errorBanner.style.display = "block";
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const tasksCollection = collection(db, "tasks");
+
+  let tasks = [];
+  let viewMode = "month";
+  let currentBaseDate = new Date();
+
+  const monthLabel = document.getElementById("calendar-month-label");
+  const grid = document.getElementById("calendar-grid");
+
+  onSnapshot(tasksCollection, snap => {
+    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCalendar();
+    renderTaskList();
+  });
+
+  function occursOnDate(task, date) {
+    const start = new Date(task.startDate);
+    const d = new Date(date);
+
+    if (task.frequency === "daily") return d >= start;
+    if (task.frequency === "weekly") {
+      const diff = Math.floor((d - start) / (1000*60*60*24));
+      return diff >= 0 && diff % 7 === 0;
     }
-
-    function clearError() {
-      if (!errorBanner) return;
-      errorBanner.textContent = "";
-      errorBanner.style.display = "none";
-    }
-
-    let app, db, tasksCollection;
-    let firebaseReady = false;
-
-    try {
-      // Your Firebase config
-      const firebaseConfig = {
-        apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
-        authDomain: "leo2025-4c8a6.firebaseapp.com",
-        projectId: "leo2025-4c8a6",
-        storageBucket: "leo2025-4c8a6.firebasestorage.app",
-        messagingSenderId: "17689554146",
-        appId: "1:17689554146:web:30f171a704ea83ce6282bb",
-        measurementId: "G-6BWXTN2ZQC"
-      };
-
-      app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      tasksCollection = collection(db, "tasks");
-      firebaseReady = true;
-    } catch (e) {
-      console.error("Firebase init error", e);
-      showError("Problem initializing the shared database. Tasks will not sync.");
-    }
-
-    const STORAGE_KEY = "family_hub_tasks";
-
-    let tasks = [];
-    let currentBaseDate = new Date(); // used for month OR week anchor
-    let selectedDateStr = null;
-    let viewMode = "month"; // "month" or "week"
-
-    const taskInput = document.getElementById("task-input");
-    const ownerInput = document.getElementById("task-owner");
-    const dateInput = document.getElementById("task-date");
-    const freqSelect = document.getElementById("task-frequency");
-    const addButton = document.getElementById("add-button");
-    const taskListEl = document.getElementById("task-list");
-    const emptyStateEl = document.getElementById("empty-state");
-    const calendarGrid = document.getElementById("calendar-grid");
-    const monthLabel = document.getElementById("calendar-month-label");
-    const prevMonthBtn = document.getElementById("prev-month");
-    const nextMonthBtn = document.getElementById("next-month");
-    const viewMonthBtn = document.getElementById("view-month");
-    const viewWeekBtn = document.getElementById("view-week");
-
-    function todayStr() {
-      return new Date().toISOString().slice(0, 10);
-    }
-
-    if (dateInput) {
-      dateInput.value = todayStr();
-    }
-
-    // Owner -> color mapping (stable for the session)
-    const ownerColorMap = {};
-    const ownerColors = [
-      "#f97316", // orange
-      "#22c55e", // green
-      "#3b82f6", // blue
-      "#ec4899", // pink
-      "#a855f7", // purple
-      "#eab308"  // yellow
-    ];
-
-    function getOwnerKey(owner) {
-      const trimmed = (owner || "").trim();
-      return trimmed ? trimmed.toLowerCase() : "family";
-    }
-
-    function getOwnerColor(owner) {
-      const key = getOwnerKey(owner);
-      if (!ownerColorMap[key]) {
-        const idx = Object.keys(ownerColorMap).length % ownerColors.length;
-        ownerColorMap[key] = ownerColors[idx];
-      }
-      return ownerColorMap[key];
-    }
-
-    function migrateLocalTasksIfAny() {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-
-    function subscribeToTasks() {
-      if (!firebaseReady) {
-        showError("Firebase is not ready. Tasks will not sync.");
-        return;
-      }
-      onSnapshot(
-        tasksCollection,
-        (snapshot) => {
-          clearError();
-          tasks = snapshot.docs.map((d) => ({
-            id: d.id,
-            ...d.data()
-          }));
-          updateEmptyState();
-          renderTaskList();
-          renderCalendar();
-        },
-        (error) => {
-          console.error("onSnapshot error", error);
-          showError("Can't load tasks from the cloud right now.");
-        }
-      );
-    }
-
-    function updateEmptyState() {
-      emptyStateEl.style.display = tasks.length ? "none" : "block";
-    }
-
-    function renderTaskList() {
-      taskListEl.innerHTML = "";
-      tasks.forEach((task) => {
-        const li = document.createElement("li");
-
-        const top = document.createElement("div");
-        top.className = "task-top";
-
-        const title = document.createElement("div");
-        title.className = "task-title";
-        title.textContent = task.text || "(no description)";
-        if (task.status === "Done") {
-          title.classList.add("done");
-        }
-        top.appendChild(title);
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "delete-btn";
-        delBtn.type = "button";
-        delBtn.textContent = "✕";
-        delBtn.addEventListener("click", async () => {
-          if (!task.id || !firebaseReady) return;
-          try {
-            await deleteDoc(doc(db, "tasks", task.id));
-          } catch (e) {
-            console.error("Delete error", e);
-            showError("Couldn't delete task. Check your connection.");
-          }
-        });
-        top.appendChild(delBtn);
-
-        const meta = document.createElement("div");
-        meta.className = "task-meta";
-
-        const ownerTag = document.createElement("span");
-        ownerTag.className = "tag owner";
-        ownerTag.textContent = task.owner || "Family";
-        const ownerColor = getOwnerColor(task.owner);
-        ownerTag.style.borderColor = ownerColor;
-        ownerTag.style.backgroundColor = ownerColor + "20";
-        meta.appendChild(ownerTag);
-
-        const dateTag = document.createElement("span");
-        dateTag.className = "tag date";
-        dateTag.textContent = task.startDate || todayStr();
-        meta.appendChild(dateTag);
-
-        const freqTag = document.createElement("span");
-        freqTag.className = "tag frequency";
-        const freqText =
-          task.frequency === "daily"
-            ? "Daily"
-            : task.frequency === "weekly"
-            ? "Weekly"
-            : task.frequency === "monthly"
-            ? "Monthly"
-            : "One time";
-        freqTag.textContent = freqText;
-        meta.appendChild(freqTag);
-
-        const actions = document.createElement("div");
-        actions.className = "task-actions";
-
-        const statusLabel = document.createElement("span");
-        statusLabel.className = "status-label";
-        statusLabel.textContent = "Status: ";
-
-        const statusSelect = document.createElement("select");
-        ["Not started", "In progress", "Done"].forEach((s) => {
-          const opt = document.createElement("option");
-          opt.value = s;
-          opt.textContent = s;
-          if (task.status === s) opt.selected = true;
-          statusSelect.appendChild(opt);
-        });
-        statusSelect.addEventListener("change", async () => {
-          if (!task.id || !firebaseReady) return;
-          try {
-            await updateDoc(doc(db, "tasks", task.id), {
-              status: statusSelect.value
-            });
-          } catch (e) {
-            console.error("Status update error", e);
-            showError("Couldn't update status. Check your connection.");
-          }
-        });
-
-        actions.appendChild(statusLabel);
-        actions.appendChild(statusSelect);
-
-        li.appendChild(top);
-        li.appendChild(meta);
-        li.appendChild(actions);
-
-        taskListEl.appendChild(li);
-      });
-    }
-
-    function isSameDay(d1, d2) {
-      return (
-        d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate()
-      );
-    }
-
-    function occursOnDate(task, date) {
-      if (!task.startDate) return false;
-      const start = new Date(task.startDate + "T00:00:00");
-      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      if (target < start) return false;
-
-      switch (task.frequency) {
-        case "daily":
-          return true;
-        case "weekly": {
-          const diffMs = target - start;
-          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-          return diffDays % 7 === 0;
-        }
-        case "monthly":
-          return target.getDate() === start.getDate();
-        default: // once
-          return isSameDay(target, start);
-      }
-    }
-
-    function formatMonthLabel(date) {
-      return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    }
-
-    function formatWeekLabel(weekStart, weekEnd) {
-      const startStr = weekStart.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric"
-      });
-      const endStr = weekEnd.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric"
-      });
-      return `Week of ${startStr} – ${endStr}`;
-    }
-
-    function buildDayCell(cellDate, todayStrVal, options = {}) {
-      const cell = document.createElement("button");
-      cell.type = "button";
-      cell.className = "day-cell";
-      if (options.otherMonth) {
-        cell.classList.add("other-month");
-      }
-
-      const cellDateStr = cellDate.toISOString().slice(0, 10);
-      cell.dataset.date = cellDateStr;
-
-      const header = document.createElement("div");
-      header.className = "day-header";
-
-      const numEl = document.createElement("div");
-      numEl.className = "day-number";
-      numEl.textContent = cellDate.getDate();
-      header.appendChild(numEl);
-
-      const ownerBadge = document.createElement("div");
-      ownerBadge.className = "owner-badge";
-      header.appendChild(ownerBadge);
-
-      cell.appendChild(header);
-
-      const tasksForDay = tasks.filter((t) => occursOnDate(t, cellDate));
-
-      if (tasksForDay.length > 0) {
-        const mainOwner = tasksForDay[0].owner;
-        ownerBadge.style.backgroundColor = getOwnerColor(mainOwner);
-        cell.classList.add("has-task");
-
-        const tasksInline = document.createElement("div");
-        tasksInline.className = "day-tasks-inline";
-
-        tasksForDay.slice(0, 3).forEach((task) => {
-          const row = document.createElement("div");
-          row.className = "day-task-inline";
-
-          const dot = document.createElement("div");
-          dot.className = "day-task-dot";
-          dot.style.backgroundColor = getOwnerColor(task.owner);
-          row.appendChild(dot);
-
-          const text = document.createElement("span");
-          text.className = "day-task-text";
-          text.textContent = task.text || "(no description)";
-          if (task.status === "Done") {
-            text.classList.add("done");
-          }
-          row.appendChild(text);
-
-          tasksInline.appendChild(row);
-        });
-
-        if (tasksForDay.length > 3) {
-          const more = document.createElement("span");
-          more.className = "day-task-text";
-          more.textContent = `+${tasksForDay.length - 3} more`;
-          tasksInline.appendChild(more);
-        }
-
-        cell.appendChild(tasksInline);
-      } else {
-        ownerBadge.style.backgroundColor = "transparent";
-      }
-
-      if (cellDateStr === todayStrVal) {
-        cell.classList.add("today");
-      }
-
-      if (selectedDateStr && selectedDateStr === cellDateStr) {
-        cell.classList.add("selected");
-      }
-
-      cell.addEventListener("click", () => {
-        selectedDateStr = cellDateStr;
-        currentBaseDate = new Date(cellDate); // anchor week/month around this
-        calendarGrid
-          .querySelectorAll(".day-cell.selected")
-          .forEach((c) => c.classList.remove("selected"));
-        cell.classList.add("selected");
-      });
-
-      return cell;
-    }
-
-    function renderCalendar() {
-      calendarGrid.innerHTML = "";
-
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      dayNames.forEach((name) => {
-        const div = document.createElement("div");
-        div.className = "day-name";
-        div.textContent = name;
-        calendarGrid.appendChild(div);
-      });
-
-      const today = new Date();
-      const todayStrVal = today.toISOString().slice(0, 10);
-
-      if (viewMode === "month") {
-        const year = currentBaseDate.getFullYear();
-        const month = currentBaseDate.getMonth();
-        monthLabel.textContent = formatMonthLabel(currentBaseDate);
-
-        const firstDayOfMonth = new Date(year, month, 1);
-        const startDay = firstDayOfMonth.getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const prevMonthDays = new Date(year, month, 0).getDate();
-
-        const totalCells = startDay + daysInMonth;
-        const rowsNeeded = Math.ceil(totalCells / 7);
-        const cellsTotal = rowsNeeded * 7;
-
-        for (let i = 0; i < cellsTotal; i++) {
-          let cellDate;
-          let otherMonth = false;
-
-          if (i < startDay) {
-            const dayNum = prevMonthDays - (startDay - 1 - i);
-            cellDate = new Date(year, month - 1, dayNum);
-            otherMonth = true;
-          } else if (i >= startDay + daysInMonth) {
-            const dayNum = i - (startDay + daysInMonth) + 1;
-            cellDate = new Date(year, month + 1, dayNum);
-            otherMonth = true;
-          } else {
-            const dayNum = i - startDay + 1;
-            cellDate = new Date(year, month, dayNum);
-          }
-
-          const cell = buildDayCell(cellDate, todayStrVal, { otherMonth });
-          calendarGrid.appendChild(cell);
-        }
-      } else {
-        // WEEK view
-        const weekStart = new Date(currentBaseDate);
-        weekStart.setHours(0, 0, 0, 0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // back to Sunday
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-
-        monthLabel.textContent = formatWeekLabel(weekStart, weekEnd);
-
-        for (let i = 0; i < 7; i++) {
-          const cellDate = new Date(weekStart);
-          cellDate.setDate(weekStart.getDate() + i);
-          const cell = buildDayCell(cellDate, todayStrVal);
-          calendarGrid.appendChild(cell);
-        }
-      }
-    }
-
-    async function handleAddTask() {
-      const text = taskInput.value.trim();
-      const owner = ownerInput.value.trim();
-      const startDate = dateInput.value || todayStr();
-      const frequency = freqSelect.value || "once";
-
-      if (!text) {
-        alert("Please type a task first.");
-        return;
-      }
-
-      if (!firebaseReady) {
-        showError("Firebase is not ready, can't save to cloud.");
-        return;
-      }
-
-      const newTask = {
-        text,
-        owner: owner || "Family",
-        startDate,
-        frequency,
-        status: "Not started"
-      };
-
-      try {
-        clearError();
-        await addDoc(tasksCollection, newTask);
-        alert("Task saved to cloud! Open this link on another device to see it.");
-        taskInput.value = "";
-        ownerInput.value = "";
-        // keep date + frequency as-is
-      } catch (e) {
-        console.error("Add task error", e);
-        showError("Error saving task: " + (e.message || e));
-        alert("Error saving task: " + (e.message || e));
-      }
-    }
-
-    function setViewMode(mode) {
-      viewMode = mode;
-      if (viewMonthBtn && viewWeekBtn) {
-        if (mode === "month") {
-          viewMonthBtn.classList.add("active");
-          viewWeekBtn.classList.remove("active");
-        } else {
-          viewWeekBtn.classList.add("active");
-          viewMonthBtn.classList.remove("active");
-        }
-      }
-      renderCalendar();
-    }
-
-    if (addButton) {
-      addButton.addEventListener("click", handleAddTask);
+    if (task.frequency === "monthly") return d.getDate() === start.getDate();
+    return d.toDateString() === start.toDateString();
+  }
+
+  function renderCalendar() {
+    grid.innerHTML = "";
+    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    days.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "day-name";
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    if (viewMode === "month") {
+      renderMonthView();
     } else {
-      showError("Add button not found in the page.");
+      renderWeekView();
+    }
+  }
+
+  function renderMonthView() {
+    const year = currentBaseDate.getFullYear();
+    const month = currentBaseDate.getMonth();
+    monthLabel.textContent = currentBaseDate.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric"
+    });
+
+    const first = new Date(year, month, 1);
+    const startDay = first.getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+
+    const cells = [];
+    // previous month padding
+    for (let i = 0; i < startDay; i++) {
+      const d = new Date(year, month, i - startDay + 1);
+      cells.push({ date: d, other: true });
     }
 
-    if (prevMonthBtn && nextMonthBtn) {
-      prevMonthBtn.addEventListener("click", () => {
-        if (viewMode === "month") {
-          currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
-          currentBaseDate.setDate(1);
-        } else {
-          currentBaseDate.setDate(currentBaseDate.getDate() - 7);
-        }
-        renderCalendar();
+    // this month
+    for (let day = 1; day <= daysInMonth; day++) {
+      cells.push({ date: new Date(year, month, day), other: false });
+    }
+
+    cells.forEach(c => addDayCell(c.date, c.other));
+  }
+
+  function renderWeekView() {
+    const base = new Date(currentBaseDate);
+    const start = new Date(base);
+    start.setDate(base.getDate() - base.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    monthLabel.textContent =
+      `Week of ${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      addDayCell(d, false);
+    }
+  }
+
+  function addDayCell(date, otherMonth) {
+    const cell = document.createElement("div");
+    cell.className = "day-cell";
+    if (otherMonth) cell.classList.add("other-month");
+
+    const today = new Date().toDateString();
+    if (date.toDateString() === today) {
+      cell.classList.add("today");
+    }
+
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.innerHTML = `
+      <span>${date.getDate()}</span>
+      <span class="owner-badge"></span>
+    `;
+    cell.appendChild(header);
+
+    const matches = tasks.filter(t => occursOnDate(t, date));
+    if (matches.length) {
+      const ownerColor = getOwnerColor(matches[0].owner);
+      header.querySelector(".owner-badge").style.background = ownerColor;
+
+      const wrap = document.createElement("div");
+      wrap.className = "day-tasks-inline";
+
+      matches.slice(0,3).forEach(t => {
+        const row = document.createElement("div");
+        row.className = "day-task-inline";
+        const dot = document.createElement("div");
+        dot.style.width = "0.45rem";
+        dot.style.height = "0.45rem";
+        dot.style.borderRadius = "999px";
+        dot.style.background = getOwnerColor(t.owner);
+        row.appendChild(dot);
+
+        const label = document.createElement("span");
+        label.className = "day-task-text";
+        if (t.status === "Done") label.classList.add("done");
+        label.textContent = t.text;
+        row.appendChild(label);
+
+        wrap.appendChild(row);
       });
 
-      nextMonthBtn.addEventListener("click", () => {
-        if (viewMode === "month") {
-          currentBaseDate.setMonth(currentBaseDate.getMonth() + 1);
-          currentBaseDate.setDate(1);
-        } else {
-          currentBaseDate.setDate(currentBaseDate.getDate() + 7);
-        }
-        renderCalendar();
+      cell.appendChild(wrap);
+    }
+
+    grid.appendChild(cell);
+  }
+
+  const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
+  const ownerMap = {};
+  function getOwnerColor(owner) {
+    const key = owner.toLowerCase();
+    if (!ownerMap[key]) {
+      ownerMap[key] = ownerColors[Object.keys(ownerMap).length % ownerColors.length];
+    }
+    return ownerMap[key];
+  }
+
+  function renderTaskList() {
+    const list = document.getElementById("task-list");
+    list.innerHTML = "";
+    tasks.forEach(t => {
+      const li = document.createElement("li");
+
+      const title = document.createElement("div");
+      title.textContent = t.text;
+      if (t.status === "Done") {
+        title.style.textDecoration = "line-through";
+        title.style.color = "#9ca3af";
+      }
+      li.appendChild(title);
+
+      const meta = document.createElement("div");
+      meta.style.fontSize = "0.75rem";
+      meta.style.color = "#6b7280";
+      meta.textContent = `${t.owner} • ${t.startDate} • ${t.frequency}`;
+      li.appendChild(meta);
+
+      const status = document.createElement("select");
+      ["Not started","In progress","Done"].forEach(s => {
+        const opt = document.createElement("option");
+        opt.textContent = s;
+        if (t.status === s) opt.selected = true;
+        status.appendChild(opt);
       });
+
+      status.onchange = () =>
+        updateDoc(doc(db, "tasks", t.id), { status: status.value });
+
+      li.appendChild(status);
+
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("add-button").onclick = async () => {
+    const text = document.getElementById("task-input").value.trim();
+    const owner = document.getElementById("task-owner").value.trim();
+    const date = document.getElementById("task-date").value;
+    const freq = document.getElementById("task-frequency").value;
+
+    if (!text || !date) {
+      alert("Please fill the task and date");
+      return;
     }
 
-    if (viewMonthBtn && viewWeekBtn) {
-      viewMonthBtn.addEventListener("click", () => setViewMode("month"));
-      viewWeekBtn.addEventListener("click", () => setViewMode("week"));
-    }
+    await addDoc(tasksCollection, {
+      text,
+      owner: owner || "Family",
+      startDate: date,
+      frequency: freq,
+      status: "Not started"
+    });
 
-    migrateLocalTasksIfAny();
-    subscribeToTasks();
-  </script>
+    document.getElementById("task-input").value = "";
+    document.getElementById("task-owner").value = "";
+  };
+
+  document.getElementById("view-month").onclick = () => {
+    viewMode = "month";
+    document.getElementById("view-month").classList.add("active");
+    document.getElementById("view-week").classList.remove("active");
+    renderCalendar();
+  };
+
+  document.getElementById("view-week").onclick = () => {
+    viewMode = "week";
+    document.getElementById("view-week").classList.add("active");
+    document.getElementById("view-month").classList.remove("active");
+    renderCalendar();
+  };
+
+  document.getElementById("prev-month").onclick = () => {
+    if (viewMode === "month") {
+      currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
+    } else {
+      currentBaseDate.setDate(currentBaseDate.getDate() - 7);
+    }
+    renderCalendar();
+  };
+
+  document.getElementById("next-month").onclick = () => {
+    if (viewMode === "month") {
+      currentBaseDate.setMonth(currentBaseDate.getMonth() + 1);
+    } else {
+      currentBaseDate.setDate(currentBaseDate.getDate() + 7);
+    }
+    renderCalendar();
+  };
+
+  renderCalendar();
+</script>
+
 </body>
 </html>

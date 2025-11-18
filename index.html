@@ -146,6 +146,17 @@
       font-size: 0.78rem;
     }
 
+    .calendar-grid.week-mode {
+      grid-template-columns: 60px repeat(7, 1fr); /* time column + 7 day columns */
+      gap: 0;
+      border: 1px solid var(--border-soft);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #f9fafb;
+    }
+
+    /* Month view cells */
+
     .day-name {
       text-align: center;
       color: var(--text-muted);
@@ -211,7 +222,71 @@
       color: var(--done-text);
     }
 
-    /* Tasks panel (restored richer layout) */
+    /* Week view grid */
+
+    .week-time-header {
+      background: #e5e7eb;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.35rem;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .week-day-header {
+      background: #e5e7eb;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.25rem 0.35rem;
+      border-bottom: 1px solid var(--border-soft);
+      border-left: 1px solid var(--border-soft);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .week-day-header.today {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .week-time-cell {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.35rem;
+      border-bottom: 1px solid var(--border-soft);
+      background: #f3f4f6;
+      white-space: nowrap;
+    }
+
+    .week-cell {
+      min-height: 2.4rem;
+      padding: 0.2rem 0.25rem;
+      border-bottom: 1px solid var(--border-soft);
+      border-left: 1px solid var(--border-soft);
+      background: #ffffff;
+      font-size: 0.72rem;
+    }
+
+    .week-task {
+      margin-bottom: 0.12rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.2rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .week-task-dot {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .week-task-text.done {
+      text-decoration: line-through;
+      color: var(--done-text);
+    }
+
+    /* Tasks panel */
 
     #task-list { padding: 0; margin: 0; list-style: none; }
 
@@ -364,7 +439,7 @@
       </div>
 
       <div class="helper-text">
-        Week view shows tasks in time order like <strong>08:30 – Task</strong>. Month view is more compact.
+        Week view: hours down the left, 7 days across the top. Month view: compact overview.
       </div>
 
       <div class="calendar-grid" id="calendar-grid"></div>
@@ -467,67 +542,6 @@
     return h * 60 + m;
   }
 
-  function renderCalendar() {
-    grid.innerHTML = "";
-    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    days.forEach(d => {
-      const el = document.createElement("div");
-      el.className = "day-name";
-      el.textContent = d;
-      grid.appendChild(el);
-    });
-
-    if (viewMode === "month") {
-      renderMonthView();
-    } else {
-      renderWeekView();
-    }
-  }
-
-  function renderMonthView() {
-    const year = currentBaseDate.getFullYear();
-    const month = currentBaseDate.getMonth();
-    monthLabel.textContent = formatMonthLabel(currentBaseDate);
-
-    const first = new Date(year, month, 1);
-    const startDay = first.getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const prevMonthDays = new Date(year, month, 0).getDate();
-
-    const cells = [];
-
-    // previous month padding
-    for (let i = 0; i < startDay; i++) {
-      const d = new Date(year, month - 1, prevMonthDays - (startDay - 1 - i));
-      cells.push({ date: d, other: true });
-    }
-
-    // this month
-    for (let day = 1; day <= daysInMonth; day++) {
-      cells.push({ date: new Date(year, month, day), other: false });
-    }
-
-    const todayStr = new Date().toDateString();
-    cells.forEach(c => addDayCell(c.date, c.other, todayStr));
-  }
-
-  function renderWeekView() {
-    const base = new Date(currentBaseDate);
-    const start = new Date(base);
-    start.setDate(base.getDate() - base.getDay());
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    monthLabel.textContent = formatWeekLabel(start, end);
-
-    const todayStr = new Date().toDateString();
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      addDayCell(d, false, todayStr);
-    }
-  }
-
   const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
   const ownerMap = {};
   function getOwnerColor(owner = "Family") {
@@ -538,7 +552,51 @@
     return ownerMap[key];
   }
 
-  function addDayCell(date, otherMonth, todayStr) {
+  function renderCalendar() {
+    grid.innerHTML = "";
+    if (viewMode === "month") {
+      grid.classList.remove("week-mode");
+      renderMonthView();
+    } else {
+      grid.classList.add("week-mode");
+      renderWeekView();
+    }
+  }
+
+  /* ===== MONTH VIEW ===== */
+
+  function renderMonthView() {
+    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    days.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "day-name";
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    const year = currentBaseDate.getFullYear();
+    const month = currentBaseDate.getMonth();
+    monthLabel.textContent = formatMonthLabel(currentBaseDate);
+
+    const first = new Date(year, month, 1);
+    const startDay = first.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const cells = [];
+    for (let i = 0; i < startDay; i++) {
+      const d = new Date(year, month - 1, prevMonthDays - (startDay - 1 - i));
+      cells.push({ date: d, other: true });
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      cells.push({ date: new Date(year, month, day), other: false });
+    }
+
+    const todayStr = new Date().toDateString();
+    cells.forEach(c => addMonthDayCell(c.date, c.other, todayStr));
+  }
+
+  function addMonthDayCell(date, otherMonth, todayStr) {
     const cell = document.createElement("div");
     cell.className = "day-cell";
     if (otherMonth) cell.classList.add("other-month");
@@ -554,7 +612,6 @@
     header.appendChild(badge);
     cell.appendChild(header);
 
-    // tasks for this date, sorted by time
     const matches = tasks
       .filter(t => occursOnDate(t, date))
       .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
@@ -565,7 +622,7 @@
       const wrap = document.createElement("div");
       wrap.className = "day-tasks-inline";
 
-      matches.slice(0,3).forEach(t => {
+      matches.slice(0, 3).forEach(t => {
         const row = document.createElement("div");
         row.className = "day-task-inline";
 
@@ -594,6 +651,103 @@
 
     grid.appendChild(cell);
   }
+
+  /* ===== WEEK VIEW (time on left, 7 days across) ===== */
+
+  function renderWeekView() {
+    const base = new Date(currentBaseDate);
+    const start = new Date(base);
+    start.setDate(base.getDate() - base.getDay()); // Sunday
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    monthLabel.textContent = formatWeekLabel(start, end);
+
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      weekDates.push(d);
+    }
+
+    const todayStr = new Date().toDateString();
+
+    // header row: empty time column + 7 day headers
+    const emptyHeader = document.createElement("div");
+    emptyHeader.className = "week-time-header";
+    emptyHeader.textContent = "";
+    grid.appendChild(emptyHeader);
+
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    weekDates.forEach((date, idx) => {
+      const header = document.createElement("div");
+      header.className = "week-day-header";
+      if (date.toDateString() === todayStr) header.classList.add("today");
+      header.textContent =
+        dayNames[idx] + " " + date.getDate();
+      grid.appendChild(header);
+    });
+
+    // hours: "All day" row + 06:00–22:00
+    const hourRows = [{ label: "All day", value: null }];
+    for (let h = 6; h <= 22; h++) {
+      const label = (h.toString().padStart(2, "0")) + ":00";
+      hourRows.push({ label, value: h });
+    }
+
+    hourRows.forEach(row => {
+      // time cell
+      const timeCell = document.createElement("div");
+      timeCell.className = "week-time-cell";
+      timeCell.textContent = row.label;
+      grid.appendChild(timeCell);
+
+      // 7 day cells
+      weekDates.forEach(date => {
+        const cell = document.createElement("div");
+        cell.className = "week-cell";
+
+        const matches = tasks
+          .filter(t => occursOnDate(t, date))
+          .filter(t => {
+            if (row.value === null) {
+              // All day slot: tasks with no time
+              return !t.startTime;
+            } else if (!t.startTime) {
+              return false;
+            } else {
+              const parts = t.startTime.split(":");
+              const h = Number(parts[0]);
+              return h === row.value;
+            }
+          })
+          .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
+
+        matches.forEach(t => {
+          const wrap = document.createElement("div");
+          wrap.className = "week-task";
+
+          const dot = document.createElement("div");
+          dot.className = "week-task-dot";
+          dot.style.background = getOwnerColor(t.owner);
+          wrap.appendChild(dot);
+
+          const label = document.createElement("span");
+          label.className = "week-task-text";
+          if (t.status === "Done") label.classList.add("done");
+          const timePart = t.startTime ? (t.startTime + " – ") : "";
+          label.textContent = timePart + t.text;
+          wrap.appendChild(label);
+
+          cell.appendChild(wrap);
+        });
+
+        grid.appendChild(cell);
+      });
+    });
+  }
+
+  /* ===== TASK LIST ===== */
 
   function renderTaskList() {
     const list = document.getElementById("task-list");
@@ -672,7 +826,8 @@
     });
   }
 
-  // Add task
+  /* ===== ADD TASK ===== */
+
   document.getElementById("add-button").onclick = async () => {
     const text = document.getElementById("task-input").value.trim();
     const owner = document.getElementById("task-owner").value.trim();
@@ -699,7 +854,8 @@
     document.getElementById("task-time").value = "";
   };
 
-  // View buttons
+  /* ===== VIEW TOGGLES ===== */
+
   viewMonthBtn.onclick = () => {
     viewMode = "month";
     viewMonthBtn.classList.add("active");
@@ -714,7 +870,8 @@
     renderCalendar();
   };
 
-  // Prev / Next
+  /* ===== PREV / NEXT ===== */
+
   document.getElementById("prev-month").onclick = () => {
     if (viewMode === "month") {
       currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
@@ -733,7 +890,7 @@
     renderCalendar();
   };
 
-  // Initial render
+  // Initial render (blank until Firestore snapshot arrives)
   renderCalendar();
 </script>
 

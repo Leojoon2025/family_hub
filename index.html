@@ -84,11 +84,19 @@
     .calendar-card { flex: 1.7; }
     .tasks-card { flex: 1; max-width: 360px; }
 
+    .helper-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Calendar header & toggle */
+
     .calendar-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.4rem;
     }
 
     .calendar-month {
@@ -101,13 +109,14 @@
       background: #f9fafb;
       padding: 0.3rem 0.6rem;
       font-size: 0.85rem;
+      cursor: pointer;
     }
 
     .view-toggle {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.5rem;
       font-size: 0.8rem;
     }
 
@@ -116,7 +125,7 @@
     }
 
     .view-btn {
-      padding: 0.3rem 0.8rem;
+      padding: 0.25rem 0.7rem;
       border-radius: 999px;
       background: #f3f4f6;
       border: 1px solid var(--border-soft);
@@ -192,7 +201,9 @@
     }
 
     .day-task-time {
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 0.7rem;
+      min-width: 2.2rem;
     }
 
     .day-task-text.done {
@@ -200,31 +211,99 @@
       color: var(--done-text);
     }
 
-    /* Tasks panel */
+    /* Tasks panel (restored richer layout) */
+
     #task-list { padding: 0; margin: 0; list-style: none; }
+
     #task-list li {
       margin-bottom: 0.5rem;
       padding: 0.6rem;
       border-radius: 0.6rem;
       background: #f9fafb;
       border: 1px solid var(--border-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
     }
 
-    #task-list .title {
+    .task-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .task-title {
       font-size: 0.9rem;
       font-weight: 500;
+      word-wrap: break-word;
     }
 
-    #task-list .title.done {
+    .task-title.done {
       color: var(--done-text);
       text-decoration: line-through;
     }
 
-    #task-list .meta {
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
       font-size: 0.75rem;
       color: var(--text-muted);
-      margin-top: 0.15rem;
     }
+
+    .tag {
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: #f3f4f6;
+    }
+
+    .tag.owner {
+      border-color: #a5b4fc;
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .tag.date {
+      border-color: #6ee7b7;
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .tag.time {
+      border-color: #7dd3fc;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .tag.freq {
+      border-color: #facc15;
+      background: #fef9c3;
+      color: #92400e;
+    }
+
+    .task-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .delete-btn {
+      border: none;
+      background: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* Form */
 
     #task-form {
       display: grid;
@@ -271,7 +350,7 @@
   <div class="layout">
     <section class="card calendar-card">
       <div class="calendar-header">
-        <div id="calendar-month-label"></div>
+        <div class="calendar-month" id="calendar-month-label"></div>
         <div class="calendar-nav">
           <button id="prev-month">‹</button>
           <button id="next-month">›</button>
@@ -284,11 +363,16 @@
         <button class="view-btn" id="view-week">Week</button>
       </div>
 
+      <div class="helper-text">
+        Week view shows tasks in time order like <strong>08:30 – Task</strong>. Month view is more compact.
+      </div>
+
       <div class="calendar-grid" id="calendar-grid"></div>
     </section>
 
     <section class="card tasks-card">
       <h2>Tasks</h2>
+      <p class="helper-text">Add task, owner, date, <strong>time</strong>, and how often it repeats.</p>
 
       <form id="task-form" onsubmit="return false;">
         <input id="task-input" placeholder="Task" />
@@ -349,14 +433,14 @@
   });
 
   function occursOnDate(task, date) {
+    if (!task.startDate) return false;
     const start = new Date(task.startDate + "T00:00:00");
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
     if (isNaN(start)) return false;
 
     if (task.frequency === "daily") return d >= start;
     if (task.frequency === "weekly") {
-      const diff = Math.floor((d - start) / (1000*60*60*24));
+      const diff = Math.floor((d - start) / (1000 * 60 * 60 * 24));
       return diff >= 0 && diff % 7 === 0;
     }
     if (task.frequency === "monthly") return d.getDate() === start.getDate();
@@ -407,22 +491,23 @@
 
     const first = new Date(year, month, 1);
     const startDay = first.getDay();
-    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const prevMonthDays = new Date(year, month, 0).getDate();
 
     const cells = [];
 
+    // previous month padding
     for (let i = 0; i < startDay; i++) {
       const d = new Date(year, month - 1, prevMonthDays - (startDay - 1 - i));
       cells.push({ date: d, other: true });
     }
 
+    // this month
     for (let day = 1; day <= daysInMonth; day++) {
       cells.push({ date: new Date(year, month, day), other: false });
     }
 
     const todayStr = new Date().toDateString();
-
     cells.forEach(c => addDayCell(c.date, c.other, todayStr));
   }
 
@@ -436,7 +521,6 @@
     monthLabel.textContent = formatWeekLabel(start, end);
 
     const todayStr = new Date().toDateString();
-
     for (let i = 0; i < 7; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
@@ -517,30 +601,72 @@
     tasks.forEach(t => {
       const li = document.createElement("li");
 
+      const top = document.createElement("div");
+      top.className = "task-top";
+
       const title = document.createElement("div");
-      title.className = "title";
+      title.className = "task-title";
       if (t.status === "Done") title.classList.add("done");
-      title.textContent = t.text;
-      li.appendChild(title);
+      title.textContent = t.text || "(no description)";
+      top.appendChild(title);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "delete-btn";
+      delBtn.textContent = "✕";
+      delBtn.onclick = () => deleteDoc(doc(db, "tasks", t.id));
+      top.appendChild(delBtn);
+
+      li.appendChild(top);
 
       const meta = document.createElement("div");
-      meta.className = "meta";
-      const timePart = t.startTime ? ` • ${t.startTime}` : "";
-      meta.textContent = `${t.owner || "Family"} • ${t.startDate}${timePart} • ${t.frequency}`;
+      meta.className = "task-meta";
+
+      const ownerTag = document.createElement("span");
+      ownerTag.className = "tag owner";
+      ownerTag.textContent = t.owner || "Family";
+      meta.appendChild(ownerTag);
+
+      const dateTag = document.createElement("span");
+      dateTag.className = "tag date";
+      dateTag.textContent = t.startDate || "";
+      meta.appendChild(dateTag);
+
+      const timeTag = document.createElement("span");
+      timeTag.className = "tag time";
+      timeTag.textContent = t.startTime ? t.startTime : "All day";
+      meta.appendChild(timeTag);
+
+      const freqTag = document.createElement("span");
+      freqTag.className = "tag freq";
+      freqTag.textContent =
+        t.frequency === "daily" ? "Daily" :
+        t.frequency === "weekly" ? "Weekly" :
+        t.frequency === "monthly" ? "Monthly" : "One time";
+      meta.appendChild(freqTag);
+
       li.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "task-actions";
+
+      const statusLabel = document.createElement("span");
+      statusLabel.className = "status-label";
+      statusLabel.textContent = "Status:";
+      actions.appendChild(statusLabel);
 
       const status = document.createElement("select");
       ["Not started","In progress","Done"].forEach(s => {
         const opt = document.createElement("option");
+        opt.value = s;
         opt.textContent = s;
         if (t.status === s) opt.selected = true;
         status.appendChild(opt);
       });
-
       status.onchange = () =>
         updateDoc(doc(db, "tasks", t.id), { status: status.value });
+      actions.appendChild(status);
 
-      li.appendChild(status);
+      li.appendChild(actions);
 
       list.appendChild(li);
     });

@@ -16,6 +16,9 @@
       --border-soft: #e5e7eb;
       --danger: #ef4444;
       --done-text: #9ca3af;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #b91c1c;
     }
 
     * { box-sizing: border-box; }
@@ -40,7 +43,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.75rem;
     }
 
     header h1 {
@@ -57,6 +60,17 @@
       margin: 0.25rem 0 0;
       font-size: 0.9rem;
       color: var(--text-muted);
+    }
+
+    #error-banner {
+      display: none;
+      margin: 0 0 0.75rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.6rem;
+      border: 1px solid var(--error-border);
+      background: var(--error-bg);
+      color: var(--error-text);
+      font-size: 0.8rem;
     }
 
     .layout {
@@ -311,7 +325,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.4rem;
     }
 
     .calendar-header-title {
@@ -345,6 +359,34 @@
 
     .calendar-nav button:active {
       background: #e5e7eb;
+    }
+
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .view-toggle-label {
+      color: var(--text-muted);
+    }
+
+    .view-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: #f9fafb;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+
+    .view-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
     }
 
     .calendar-grid {
@@ -455,6 +497,8 @@
       <p>Shared color-coded calendar + task list for the whole family ✨</p>
     </header>
 
+    <div id="error-banner"></div>
+
     <div class="layout">
       <!-- Calendar FIRST (main focus) -->
       <section class="card calendar-card" aria-label="Family calendar">
@@ -467,6 +511,12 @@
             <button type="button" id="prev-month">‹</button>
             <button type="button" id="next-month">›</button>
           </div>
+        </div>
+
+        <div class="view-toggle">
+          <span class="view-toggle-label">View:</span>
+          <button type="button" id="view-month" class="view-btn active">Month</button>
+          <button type="button" id="view-week" class="view-btn">Week</button>
         </div>
 
         <div class="helper-text">
@@ -548,27 +598,50 @@
       onSnapshot
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-    // 🔒 Your Firebase config (from Firebase console)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
-      authDomain: "leo2025-4c8a6.firebaseapp.com",
-      projectId: "leo2025-4c8a6",
-      storageBucket: "leo2025-4c8a6.firebasestorage.app",
-      messagingSenderId: "17689554146",
-      appId: "1:17689554146:web:30f171a704ea83ce6282bb",
-      measurementId: "G-6BWXTN2ZQC"
-    };
+    const errorBanner = document.getElementById("error-banner");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const tasksCollection = collection(db, "tasks");
+    function showError(message) {
+      if (!errorBanner) return;
+      errorBanner.textContent = message;
+      errorBanner.style.display = "block";
+    }
 
-    const STORAGE_KEY = "family_hub_tasks"; // only used for potential migration
+    function clearError() {
+      if (!errorBanner) return;
+      errorBanner.textContent = "";
+      errorBanner.style.display = "none";
+    }
+
+    let app, db, tasksCollection;
+    let firebaseReady = false;
+
+    try {
+      // Your Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
+        authDomain: "leo2025-4c8a6.firebaseapp.com",
+        projectId: "leo2025-4c8a6",
+        storageBucket: "leo2025-4c8a6.firebasestorage.app",
+        messagingSenderId: "17689554146",
+        appId: "1:17689554146:web:30f171a704ea83ce6282bb",
+        measurementId: "G-6BWXTN2ZQC"
+      };
+
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      tasksCollection = collection(db, "tasks");
+      firebaseReady = true;
+    } catch (e) {
+      console.error("Firebase init error", e);
+      showError("Problem initializing the shared database. Tasks will not sync.");
+    }
+
+    const STORAGE_KEY = "family_hub_tasks";
 
     let tasks = [];
-    let currentMonth = new Date();
-    currentMonth.setDate(1);
+    let currentBaseDate = new Date(); // used for month OR week anchor
     let selectedDateStr = null;
+    let viewMode = "month"; // "month" or "week"
 
     const taskInput = document.getElementById("task-input");
     const ownerInput = document.getElementById("task-owner");
@@ -581,6 +654,8 @@
     const monthLabel = document.getElementById("calendar-month-label");
     const prevMonthBtn = document.getElementById("prev-month");
     const nextMonthBtn = document.getElementById("next-month");
+    const viewMonthBtn = document.getElementById("view-month");
+    const viewWeekBtn = document.getElementById("view-week");
 
     function todayStr() {
       return new Date().toISOString().slice(0, 10);
@@ -616,20 +691,31 @@
     }
 
     function migrateLocalTasksIfAny() {
-      // Right now we just clear any old local-only data
       localStorage.removeItem(STORAGE_KEY);
     }
 
     function subscribeToTasks() {
-      onSnapshot(tasksCollection, (snapshot) => {
-        tasks = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data()
-        }));
-        updateEmptyState();
-        renderTaskList();
-        renderCalendar();
-      });
+      if (!firebaseReady) {
+        showError("Firebase is not ready. Tasks will not sync.");
+        return;
+      }
+      onSnapshot(
+        tasksCollection,
+        (snapshot) => {
+          clearError();
+          tasks = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data()
+          }));
+          updateEmptyState();
+          renderTaskList();
+          renderCalendar();
+        },
+        (error) => {
+          console.error("onSnapshot error", error);
+          showError("Can't load tasks from the cloud right now.");
+        }
+      );
     }
 
     function updateEmptyState() {
@@ -657,8 +743,13 @@
         delBtn.type = "button";
         delBtn.textContent = "✕";
         delBtn.addEventListener("click", async () => {
-          if (!task.id) return;
-          await deleteDoc(doc(db, "tasks", task.id));
+          if (!task.id || !firebaseReady) return;
+          try {
+            await deleteDoc(doc(db, "tasks", task.id));
+          } catch (e) {
+            console.error("Delete error", e);
+            showError("Couldn't delete task. Check your connection.");
+          }
         });
         top.appendChild(delBtn);
 
@@ -707,10 +798,15 @@
           statusSelect.appendChild(opt);
         });
         statusSelect.addEventListener("change", async () => {
-          if (!task.id) return;
-          await updateDoc(doc(db, "tasks", task.id), {
-            status: statusSelect.value
-          });
+          if (!task.id || !firebaseReady) return;
+          try {
+            await updateDoc(doc(db, "tasks", task.id), {
+              status: statusSelect.value
+            });
+          } catch (e) {
+            console.error("Status update error", e);
+            showError("Couldn't update status. Check your connection.");
+          }
         });
 
         actions.appendChild(statusLabel);
@@ -757,12 +853,107 @@
       return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
     }
 
+    function formatWeekLabel(weekStart, weekEnd) {
+      const startStr = weekStart.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric"
+      });
+      const endStr = weekEnd.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric"
+      });
+      return `Week of ${startStr} – ${endStr}`;
+    }
+
+    function buildDayCell(cellDate, todayStrVal, options = {}) {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "day-cell";
+      if (options.otherMonth) {
+        cell.classList.add("other-month");
+      }
+
+      const cellDateStr = cellDate.toISOString().slice(0, 10);
+      cell.dataset.date = cellDateStr;
+
+      const header = document.createElement("div");
+      header.className = "day-header";
+
+      const numEl = document.createElement("div");
+      numEl.className = "day-number";
+      numEl.textContent = cellDate.getDate();
+      header.appendChild(numEl);
+
+      const ownerBadge = document.createElement("div");
+      ownerBadge.className = "owner-badge";
+      header.appendChild(ownerBadge);
+
+      cell.appendChild(header);
+
+      const tasksForDay = tasks.filter((t) => occursOnDate(t, cellDate));
+
+      if (tasksForDay.length > 0) {
+        const mainOwner = tasksForDay[0].owner;
+        ownerBadge.style.backgroundColor = getOwnerColor(mainOwner);
+        cell.classList.add("has-task");
+
+        const tasksInline = document.createElement("div");
+        tasksInline.className = "day-tasks-inline";
+
+        tasksForDay.slice(0, 3).forEach((task) => {
+          const row = document.createElement("div");
+          row.className = "day-task-inline";
+
+          const dot = document.createElement("div");
+          dot.className = "day-task-dot";
+          dot.style.backgroundColor = getOwnerColor(task.owner);
+          row.appendChild(dot);
+
+          const text = document.createElement("span");
+          text.className = "day-task-text";
+          text.textContent = task.text || "(no description)";
+          if (task.status === "Done") {
+            text.classList.add("done");
+          }
+          row.appendChild(text);
+
+          tasksInline.appendChild(row);
+        });
+
+        if (tasksForDay.length > 3) {
+          const more = document.createElement("span");
+          more.className = "day-task-text";
+          more.textContent = `+${tasksForDay.length - 3} more`;
+          tasksInline.appendChild(more);
+        }
+
+        cell.appendChild(tasksInline);
+      } else {
+        ownerBadge.style.backgroundColor = "transparent";
+      }
+
+      if (cellDateStr === todayStrVal) {
+        cell.classList.add("today");
+      }
+
+      if (selectedDateStr && selectedDateStr === cellDateStr) {
+        cell.classList.add("selected");
+      }
+
+      cell.addEventListener("click", () => {
+        selectedDateStr = cellDateStr;
+        currentBaseDate = new Date(cellDate); // anchor week/month around this
+        calendarGrid
+          .querySelectorAll(".day-cell.selected")
+          .forEach((c) => c.classList.remove("selected"));
+        cell.classList.add("selected");
+      });
+
+      return cell;
+    }
+
     function renderCalendar() {
       calendarGrid.innerHTML = "";
-
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      monthLabel.textContent = formatMonthLabel(currentMonth);
 
       const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       dayNames.forEach((name) => {
@@ -772,113 +963,59 @@
         calendarGrid.appendChild(div);
       });
 
-      const firstDayOfMonth = new Date(year, month, 1);
-      const startDay = firstDayOfMonth.getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const prevMonthDays = new Date(year, month, 0).getDate();
-
-      const totalCells = startDay + daysInMonth;
-      const rowsNeeded = Math.ceil(totalCells / 7);
-      const cellsTotal = rowsNeeded * 7;
-
       const today = new Date();
       const todayStrVal = today.toISOString().slice(0, 10);
 
-      for (let i = 0; i < cellsTotal; i++) {
-        const cell = document.createElement("button");
-        cell.type = "button";
-        cell.className = "day-cell";
+      if (viewMode === "month") {
+        const year = currentBaseDate.getFullYear();
+        const month = currentBaseDate.getMonth();
+        monthLabel.textContent = formatMonthLabel(currentBaseDate);
 
-        let cellDate;
-        if (i < startDay) {
-          const dayNum = prevMonthDays - (startDay - 1 - i);
-          cellDate = new Date(year, month - 1, dayNum);
-          cell.classList.add("other-month");
-        } else if (i >= startDay + daysInMonth) {
-          const dayNum = i - (startDay + daysInMonth) + 1;
-          cellDate = new Date(year, month + 1, dayNum);
-          cell.classList.add("other-month");
-        } else {
-          const dayNum = i - startDay + 1;
-          cellDate = new Date(year, month, dayNum);
-        }
+        const firstDayOfMonth = new Date(year, month, 1);
+        const startDay = firstDayOfMonth.getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const prevMonthDays = new Date(year, month, 0).getDate();
 
-        const cellDateStr = cellDate.toISOString().slice(0, 10);
-        cell.dataset.date = cellDateStr;
+        const totalCells = startDay + daysInMonth;
+        const rowsNeeded = Math.ceil(totalCells / 7);
+        const cellsTotal = rowsNeeded * 7;
 
-        const header = document.createElement("div");
-        header.className = "day-header";
+        for (let i = 0; i < cellsTotal; i++) {
+          let cellDate;
+          let otherMonth = false;
 
-        const numEl = document.createElement("div");
-        numEl.className = "day-number";
-        numEl.textContent = cellDate.getDate();
-        header.appendChild(numEl);
-
-        const ownerBadge = document.createElement("div");
-        ownerBadge.className = "owner-badge";
-        header.appendChild(ownerBadge);
-
-        cell.appendChild(header);
-
-        const tasksForDay = tasks.filter((t) => occursOnDate(t, cellDate));
-
-        if (tasksForDay.length > 0) {
-          const mainOwner = tasksForDay[0].owner;
-          ownerBadge.style.backgroundColor = getOwnerColor(mainOwner);
-          cell.classList.add("has-task");
-
-          const tasksInline = document.createElement("div");
-          tasksInline.className = "day-tasks-inline";
-
-          tasksForDay.slice(0, 3).forEach((task) => {
-            const row = document.createElement("div");
-            row.className = "day-task-inline";
-
-            const dot = document.createElement("div");
-            dot.className = "day-task-dot";
-            dot.style.backgroundColor = getOwnerColor(task.owner);
-            row.appendChild(dot);
-
-            const text = document.createElement("span");
-            text.className = "day-task-text";
-            text.textContent = task.text || "(no description)";
-            if (task.status === "Done") {
-              text.classList.add("done");
-            }
-            row.appendChild(text);
-
-            tasksInline.appendChild(row);
-          });
-
-          if (tasksForDay.length > 3) {
-            const more = document.createElement("span");
-            more.className = "day-task-text";
-            more.textContent = `+${tasksForDay.length - 3} more`;
-            tasksInline.appendChild(more);
+          if (i < startDay) {
+            const dayNum = prevMonthDays - (startDay - 1 - i);
+            cellDate = new Date(year, month - 1, dayNum);
+            otherMonth = true;
+          } else if (i >= startDay + daysInMonth) {
+            const dayNum = i - (startDay + daysInMonth) + 1;
+            cellDate = new Date(year, month + 1, dayNum);
+            otherMonth = true;
+          } else {
+            const dayNum = i - startDay + 1;
+            cellDate = new Date(year, month, dayNum);
           }
 
-          cell.appendChild(tasksInline);
-        } else {
-          ownerBadge.style.backgroundColor = "transparent";
+          const cell = buildDayCell(cellDate, todayStrVal, { otherMonth });
+          calendarGrid.appendChild(cell);
         }
+      } else {
+        // WEEK view
+        const weekStart = new Date(currentBaseDate);
+        weekStart.setHours(0, 0, 0, 0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // back to Sunday
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
 
-        if (cellDateStr === todayStrVal) {
-          cell.classList.add("today");
+        monthLabel.textContent = formatWeekLabel(weekStart, weekEnd);
+
+        for (let i = 0; i < 7; i++) {
+          const cellDate = new Date(weekStart);
+          cellDate.setDate(weekStart.getDate() + i);
+          const cell = buildDayCell(cellDate, todayStrVal);
+          calendarGrid.appendChild(cell);
         }
-
-        if (selectedDateStr && selectedDateStr === cellDateStr) {
-          cell.classList.add("selected");
-        }
-
-        cell.addEventListener("click", () => {
-          selectedDateStr = cellDateStr;
-          calendarGrid
-            .querySelectorAll(".day-cell.selected")
-            .forEach((c) => c.classList.remove("selected"));
-          cell.classList.add("selected");
-        });
-
-        calendarGrid.appendChild(cell);
       }
     }
 
@@ -893,6 +1030,11 @@
         return;
       }
 
+      if (!firebaseReady) {
+        showError("Firebase is not ready, can't save to cloud.");
+        return;
+      }
+
       const newTask = {
         text,
         owner: owner || "Family",
@@ -901,24 +1043,66 @@
         status: "Not started"
       };
 
-      await addDoc(tasksCollection, newTask);
-
-      taskInput.value = "";
-      ownerInput.value = "";
-      // keep date + frequency as-is
+      try {
+        clearError();
+        await addDoc(tasksCollection, newTask);
+        alert("Task saved to cloud! Open this link on another device to see it.");
+        taskInput.value = "";
+        ownerInput.value = "";
+        // keep date + frequency as-is
+      } catch (e) {
+        console.error("Add task error", e);
+        showError("Error saving task: " + (e.message || e));
+        alert("Error saving task: " + (e.message || e));
+      }
     }
 
-    addButton.addEventListener("click", handleAddTask);
-
-    prevMonthBtn.addEventListener("click", () => {
-      currentMonth.setMonth(currentMonth.getMonth() - 1);
+    function setViewMode(mode) {
+      viewMode = mode;
+      if (viewMonthBtn && viewWeekBtn) {
+        if (mode === "month") {
+          viewMonthBtn.classList.add("active");
+          viewWeekBtn.classList.remove("active");
+        } else {
+          viewWeekBtn.classList.add("active");
+          viewMonthBtn.classList.remove("active");
+        }
+      }
       renderCalendar();
-    });
+    }
 
-    nextMonthBtn.addEventListener("click", () => {
-      currentMonth.setMonth(currentMonth.getMonth() + 1);
-      renderCalendar();
-    });
+    if (addButton) {
+      addButton.addEventListener("click", handleAddTask);
+    } else {
+      showError("Add button not found in the page.");
+    }
+
+    if (prevMonthBtn && nextMonthBtn) {
+      prevMonthBtn.addEventListener("click", () => {
+        if (viewMode === "month") {
+          currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
+          currentBaseDate.setDate(1);
+        } else {
+          currentBaseDate.setDate(currentBaseDate.getDate() - 7);
+        }
+        renderCalendar();
+      });
+
+      nextMonthBtn.addEventListener("click", () => {
+        if (viewMode === "month") {
+          currentBaseDate.setMonth(currentBaseDate.getMonth() + 1);
+          currentBaseDate.setDate(1);
+        } else {
+          currentBaseDate.setDate(currentBaseDate.getDate() + 7);
+        }
+        renderCalendar();
+      });
+    }
+
+    if (viewMonthBtn && viewWeekBtn) {
+      viewMonthBtn.addEventListener("click", () => setViewMode("month"));
+      viewWeekBtn.addEventListener("click", () => setViewMode("week"));
+    }
 
     migrateLocalTasksIfAny();
     subscribeToTasks();

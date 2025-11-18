@@ -314,6 +314,12 @@
       text-decoration: line-through;
     }
 
+    .task-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
     .task-meta {
       display: flex;
       flex-wrap: wrap;
@@ -365,13 +371,16 @@
       color: var(--text-muted);
     }
 
-    .delete-btn {
+    .delete-btn,
+    .edit-btn {
       border: none;
       background: none;
-      color: var(--danger);
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
+
+    .delete-btn { color: var(--danger); }
+    .edit-btn { color: #4b5563; }
 
     /* Form */
 
@@ -471,7 +480,6 @@
     deleteDoc, doc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // --- Firebase config ---
   const firebaseConfig = {
     apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
     authDomain: "leo2025-4c8a6.firebaseapp.com",
@@ -495,7 +503,6 @@
   const viewMonthBtn = document.getElementById("view-month");
   const viewWeekBtn = document.getElementById("view-week");
 
-  // owner colors
   const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
   const ownerMap = {};
   function getOwnerColor(owner = "Family") {
@@ -541,8 +548,6 @@
     return `Week of ${s} – ${e}`;
   }
 
-  /* ===== render calendar root ===== */
-
   function renderCalendar() {
     grid.innerHTML = "";
     if (viewMode === "month") {
@@ -554,7 +559,7 @@
     }
   }
 
-  /* ===== MONTH VIEW ===== */
+  /* MONTH VIEW */
 
   function renderMonthView() {
     const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -643,7 +648,7 @@
     grid.appendChild(cell);
   }
 
-  /* ===== WEEK VIEW: time column + 7 days ===== */
+  /* WEEK VIEW: time column + 7 days */
 
   function renderWeekView() {
     const base = new Date(currentBaseDate);
@@ -664,7 +669,6 @@
     const todayStr = new Date().toDateString();
     const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-    // top row
     const emptyHeader = document.createElement("div");
     emptyHeader.className = "week-time-header";
     grid.appendChild(emptyHeader);
@@ -677,7 +681,6 @@
       grid.appendChild(header);
     });
 
-    // time rows (All day + 06..22)
     const hourRows = [{ label: "All day", value: null }];
     for (let h = 6; h <= 22; h++) {
       hourRows.push({ label: `${String(h).padStart(2, "0")}:00`, value: h });
@@ -716,8 +719,8 @@
           const label = document.createElement("span");
           label.className = "week-task-text";
           if (t.status === "Done") label.classList.add("done");
-          const timePart = t.startTime ? `${t.startTime} – ` : "";
-          label.textContent = timePart + t.text;
+          // In week view we HIDE the time text; time is implied by the row
+          label.textContent = t.text;
           wrap.appendChild(label);
 
           cell.appendChild(wrap);
@@ -728,7 +731,7 @@
     });
   }
 
-  /* ===== TASK LIST ===== */
+  /* TASK LIST WITH EDIT SUPPORT */
 
   function renderTaskList() {
     const list = document.getElementById("task-list");
@@ -745,11 +748,54 @@
       title.textContent = t.text || "(no description)";
       top.appendChild(title);
 
+      const btnWrap = document.createElement("div");
+      btnWrap.className = "task-buttons";
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "edit-btn";
+      editBtn.textContent = "Edit";
+      editBtn.onclick = async () => {
+        const newText = prompt("Task", t.text || "");
+        if (newText === null) return;
+
+        const newOwner = prompt("Owner", t.owner || "Family");
+        if (newOwner === null) return;
+
+        const newDate = prompt("Date (YYYY-MM-DD)", t.startDate || "");
+        if (newDate === null) return;
+
+        const newTime = prompt("Time (HH:MM, optional)", t.startTime || "");
+        if (newTime === null) return;
+
+        let newFreq = prompt(
+          "Frequency (once/daily/weekly/monthly)",
+          t.frequency || "once"
+        );
+        if (newFreq === null) return;
+        newFreq = newFreq.toLowerCase();
+        const allowed = ["once","daily","weekly","monthly"];
+        if (!allowed.includes(newFreq)) {
+          alert("Frequency not recognized, keeping previous value.");
+          newFreq = t.frequency || "once";
+        }
+
+        await updateDoc(doc(db, "tasks", t.id), {
+          text: newText.trim() || "(no description)",
+          owner: newOwner.trim() || "Family",
+          startDate: newDate,
+          startTime: newTime,
+          frequency: newFreq
+        });
+      };
+      btnWrap.appendChild(editBtn);
+
       const delBtn = document.createElement("button");
       delBtn.className = "delete-btn";
       delBtn.textContent = "✕";
       delBtn.onclick = () => deleteDoc(doc(db, "tasks", t.id));
-      top.appendChild(delBtn);
+      btnWrap.appendChild(delBtn);
+
+      top.appendChild(btnWrap);
       li.appendChild(top);
 
       const meta = document.createElement("div");
@@ -805,7 +851,7 @@
     });
   }
 
-  /* ===== ADD TASK ===== */
+  /* ADD TASK */
 
   document.getElementById("add-button").onclick = async () => {
     const text = document.getElementById("task-input").value.trim();
@@ -833,7 +879,7 @@
     document.getElementById("task-time").value = "";
   };
 
-  /* ===== VIEW TOGGLES ===== */
+  /* VIEW TOGGLES */
 
   viewMonthBtn.onclick = () => {
     viewMode = "month";
@@ -849,7 +895,7 @@
     renderCalendar();
   };
 
-  /* ===== PREV / NEXT ===== */
+  /* PREV / NEXT */
 
   document.getElementById("prev-month").onclick = () => {
     if (viewMode === "month") {
@@ -869,14 +915,13 @@
     renderCalendar();
   };
 
-  // Listen to Firestore
+  // Firestore live updates
   onSnapshot(tasksCollection, snap => {
     tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderCalendar();
     renderTaskList();
   });
 
-  // initial
   renderCalendar();
 </script>
 

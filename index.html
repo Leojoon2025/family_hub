@@ -147,7 +147,7 @@
     }
 
     .calendar-grid.week-mode {
-      grid-template-columns: 60px repeat(7, 1fr); /* time column + 7 day columns */
+      grid-template-columns: 60px repeat(7, 1fr); /* time column + 7 days */
       gap: 0;
       border: 1px solid var(--border-soft);
       border-radius: 0.75rem;
@@ -155,7 +155,7 @@
       background: #f9fafb;
     }
 
-    /* Month view cells */
+    /* Month view */
 
     .day-name {
       text-align: center;
@@ -173,13 +173,8 @@
       flex-direction: column;
     }
 
-    .day-cell.other-month {
-      opacity: 0.3;
-    }
-
-    .day-cell.today {
-      border-color: #93c5fd;
-    }
+    .day-cell.other-month { opacity: 0.3; }
+    .day-cell.today { border-color: #93c5fd; }
 
     .day-header {
       display: flex;
@@ -222,7 +217,7 @@
       color: var(--done-text);
     }
 
-    /* Week view grid */
+    /* Week view */
 
     .week-time-header {
       background: #e5e7eb;
@@ -439,7 +434,7 @@
       </div>
 
       <div class="helper-text">
-        Week view: hours down the left, 7 days across the top. Month view: compact overview.
+        Week view: time in a separate left column, 7 days across the top. Month view: compact overview.
       </div>
 
       <div class="calendar-grid" id="calendar-grid"></div>
@@ -476,7 +471,7 @@
     deleteDoc, doc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // --- Your Firebase config ---
+  // --- Firebase config ---
   const firebaseConfig = {
     apiKey: "AIzaSyDxE4NcUZMqm4CMMJV7fD30DMCTC_BAxuY",
     authDomain: "leo2025-4c8a6.firebaseapp.com",
@@ -500,12 +495,26 @@
   const viewMonthBtn = document.getElementById("view-month");
   const viewWeekBtn = document.getElementById("view-week");
 
-  // Listen to tasks in Firestore
-  onSnapshot(tasksCollection, snap => {
-    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderCalendar();
-    renderTaskList();
-  });
+  // owner colors
+  const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
+  const ownerMap = {};
+  function getOwnerColor(owner = "Family") {
+    const key = (owner || "Family").toLowerCase();
+    if (!ownerMap[key]) {
+      ownerMap[key] = ownerColors[Object.keys(ownerMap).length % ownerColors.length];
+    }
+    return ownerMap[key];
+  }
+
+  function getTimeMinutes(task) {
+    if (!task.startTime) return 24 * 60;
+    const parts = task.startTime.split(":");
+    if (parts.length !== 2) return 24 * 60;
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (isNaN(h) || isNaN(m)) return 24 * 60;
+    return h * 60 + m;
+  }
 
   function occursOnDate(task, date) {
     if (!task.startDate) return false;
@@ -532,25 +541,7 @@
     return `Week of ${s} – ${e}`;
   }
 
-  function getTimeMinutes(task) {
-    if (!task.startTime) return 24 * 60; // no time -> goes last
-    const parts = task.startTime.split(":");
-    if (parts.length !== 2) return 24 * 60;
-    const h = Number(parts[0]);
-    const m = Number(parts[1]);
-    if (isNaN(h) || isNaN(m)) return 24 * 60;
-    return h * 60 + m;
-  }
-
-  const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
-  const ownerMap = {};
-  function getOwnerColor(owner = "Family") {
-    const key = (owner || "Family").toLowerCase();
-    if (!ownerMap[key]) {
-      ownerMap[key] = ownerColors[Object.keys(ownerMap).length % ownerColors.length];
-    }
-    return ownerMap[key];
-  }
+  /* ===== render calendar root ===== */
 
   function renderCalendar() {
     grid.innerHTML = "";
@@ -652,7 +643,7 @@
     grid.appendChild(cell);
   }
 
-  /* ===== WEEK VIEW (time on left, 7 days across) ===== */
+  /* ===== WEEK VIEW: time column + 7 days ===== */
 
   function renderWeekView() {
     const base = new Date(currentBaseDate);
@@ -671,38 +662,33 @@
     }
 
     const todayStr = new Date().toDateString();
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-    // header row: empty time column + 7 day headers
+    // top row
     const emptyHeader = document.createElement("div");
     emptyHeader.className = "week-time-header";
-    emptyHeader.textContent = "";
     grid.appendChild(emptyHeader);
 
-    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     weekDates.forEach((date, idx) => {
       const header = document.createElement("div");
       header.className = "week-day-header";
       if (date.toDateString() === todayStr) header.classList.add("today");
-      header.textContent =
-        dayNames[idx] + " " + date.getDate();
+      header.textContent = `${dayNames[idx]} ${date.getDate()}`;
       grid.appendChild(header);
     });
 
-    // hours: "All day" row + 06:00–22:00
+    // time rows (All day + 06..22)
     const hourRows = [{ label: "All day", value: null }];
     for (let h = 6; h <= 22; h++) {
-      const label = (h.toString().padStart(2, "0")) + ":00";
-      hourRows.push({ label, value: h });
+      hourRows.push({ label: `${String(h).padStart(2, "0")}:00`, value: h });
     }
 
     hourRows.forEach(row => {
-      // time cell
       const timeCell = document.createElement("div");
       timeCell.className = "week-time-cell";
       timeCell.textContent = row.label;
       grid.appendChild(timeCell);
 
-      // 7 day cells
       weekDates.forEach(date => {
         const cell = document.createElement("div");
         cell.className = "week-cell";
@@ -710,16 +696,11 @@
         const matches = tasks
           .filter(t => occursOnDate(t, date))
           .filter(t => {
-            if (row.value === null) {
-              // All day slot: tasks with no time
-              return !t.startTime;
-            } else if (!t.startTime) {
-              return false;
-            } else {
-              const parts = t.startTime.split(":");
-              const h = Number(parts[0]);
-              return h === row.value;
-            }
+            if (row.value === null) return !t.startTime;
+            if (!t.startTime) return false;
+            const parts = t.startTime.split(":");
+            const h = Number(parts[0]);
+            return h === row.value;
           })
           .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
 
@@ -735,7 +716,7 @@
           const label = document.createElement("span");
           label.className = "week-task-text";
           if (t.status === "Done") label.classList.add("done");
-          const timePart = t.startTime ? (t.startTime + " – ") : "";
+          const timePart = t.startTime ? `${t.startTime} – ` : "";
           label.textContent = timePart + t.text;
           wrap.appendChild(label);
 
@@ -769,7 +750,6 @@
       delBtn.textContent = "✕";
       delBtn.onclick = () => deleteDoc(doc(db, "tasks", t.id));
       top.appendChild(delBtn);
-
       li.appendChild(top);
 
       const meta = document.createElement("div");
@@ -821,7 +801,6 @@
       actions.appendChild(status);
 
       li.appendChild(actions);
-
       list.appendChild(li);
     });
   }
@@ -890,7 +869,14 @@
     renderCalendar();
   };
 
-  // Initial render (blank until Firestore snapshot arrives)
+  // Listen to Firestore
+  onSnapshot(tasksCollection, snap => {
+    tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCalendar();
+    renderTaskList();
+  });
+
+  // initial
   renderCalendar();
 </script>
 

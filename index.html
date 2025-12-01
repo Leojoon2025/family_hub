@@ -90,7 +90,7 @@
       margin-bottom: 0.5rem;
     }
 
-    /* Calendar header & toggle */
+    /* Calendar / view header */
 
     .calendar-header {
       display: flex;
@@ -112,32 +112,29 @@
       cursor: pointer;
     }
 
-    .view-toggle {
+    .calendar-tabs {
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
       margin-bottom: 0.5rem;
       font-size: 0.8rem;
     }
 
-    .view-toggle span {
-      color: var(--text-muted);
-    }
-
-    .view-btn {
-      padding: 0.25rem 0.7rem;
+    .tab-btn {
+      padding: 0.25rem 0.8rem;
       border-radius: 999px;
       background: #f3f4f6;
       border: 1px solid var(--border-soft);
-      font-size: 0.75rem;
       cursor: pointer;
+      font-size: 0.8rem;
     }
 
-    .view-btn.active {
+    .tab-btn.active {
       background: var(--accent);
-      color: white;
+      color: #ffffff;
       border-color: var(--accent);
     }
+
+    /* Calendar grid */
 
     .calendar-grid {
       display: grid;
@@ -281,6 +278,60 @@
       color: var(--done-text);
     }
 
+    /* Daily view (checklist) */
+
+    .daily-view {
+      font-size: 0.85rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-soft);
+      background: #f9fafb;
+      padding: 0.6rem 0.7rem;
+    }
+
+    .daily-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 0 0 0.35rem;
+      color: var(--text-muted);
+    }
+
+    .daily-list {
+      margin: 0 0 0.5rem;
+      padding: 0;
+      list-style: none;
+    }
+
+    .daily-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .daily-item input[type="checkbox"] {
+      margin-top: 0.15rem;
+    }
+
+    .daily-item-text {
+      flex: 1;
+    }
+
+    .daily-item-text.done {
+      text-decoration: line-through;
+      color: var(--done-text);
+    }
+
+    .daily-item-meta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .daily-empty {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
     /* Tasks panel */
 
     #task-list { padding: 0; margin: 0; list-style: none; }
@@ -359,6 +410,12 @@
       color: #92400e;
     }
 
+    .tag.calendar-flag {
+      border-color: #c4b5fd;
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
     .task-actions {
       display: flex;
       justify-content: space-between;
@@ -405,6 +462,14 @@
       border-color: var(--accent);
     }
 
+    .show-calendar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
     #add-button {
       margin-top: 0.2rem;
       padding: 0.55rem;
@@ -423,7 +488,7 @@
 <div class="app">
   <header>
     <h1>Family <span>Hub</span></h1>
-    <p>Shared calendar + tasks synced across all devices</p>
+    <p>Shared calendar + baby task checklist</p>
   </header>
 
   <div class="layout">
@@ -431,27 +496,31 @@
       <div class="calendar-header">
         <div class="calendar-month" id="calendar-month-label"></div>
         <div class="calendar-nav">
-          <button id="prev-month">‹</button>
-          <button id="next-month">›</button>
+          <button id="prev-range">‹</button>
+          <button id="next-range">›</button>
         </div>
       </div>
 
-      <div class="view-toggle">
-        <span>View:</span>
-        <button class="view-btn active" id="view-month">Month</button>
-        <button class="view-btn" id="view-week">Week</button>
+      <div class="calendar-tabs">
+        <button class="tab-btn active" id="tab-daily">Daily</button>
+        <button class="tab-btn" id="tab-week">Week</button>
+        <button class="tab-btn" id="tab-month">Month</button>
       </div>
 
       <div class="helper-text">
-        Week view: time in a separate left column, 7 days across the top. Month view: compact overview.
+        Daily = baby checklist · Week/Month = time-based calendar (only for tasks you choose to show).
       </div>
 
+      <div id="daily-view" class="daily-view"></div>
       <div class="calendar-grid" id="calendar-grid"></div>
     </section>
 
     <section class="card tasks-card">
       <h2>Tasks</h2>
-      <p class="helper-text">Add task, owner, date, <strong>time</strong>, and how often it repeats.</p>
+      <p class="helper-text">
+        Add a task for a day. By default it appears only in the Daily checklist.
+        Check “Show on calendar” to also show it in Week/Month.
+      </p>
 
       <form id="task-form" onsubmit="return false;">
         <input id="task-input" placeholder="Task" />
@@ -464,6 +533,11 @@
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
         </select>
+
+        <label class="show-calendar-row">
+          <input type="checkbox" id="task-show-calendar" />
+          Show on calendar (week/month)
+        </label>
 
         <button id="add-button" type="button">Add</button>
       </form>
@@ -495,13 +569,15 @@
   const tasksCollection = collection(db, "tasks");
 
   let tasks = [];
-  let viewMode = "month";
+  let viewMode = "daily"; // "daily" | "week" | "month"
   let currentBaseDate = new Date();
 
   const monthLabel = document.getElementById("calendar-month-label");
   const grid = document.getElementById("calendar-grid");
-  const viewMonthBtn = document.getElementById("view-month");
-  const viewWeekBtn = document.getElementById("view-week");
+  const dailyView = document.getElementById("daily-view");
+  const tabDaily = document.getElementById("tab-daily");
+  const tabWeek = document.getElementById("tab-week");
+  const tabMonth = document.getElementById("tab-month");
 
   const ownerColors = ["#f97316","#22c55e","#3b82f6","#ec4899","#a855f7","#eab308"];
   const ownerMap = {};
@@ -548,20 +624,163 @@
     return `Week of ${s} – ${e}`;
   }
 
-  function renderCalendar() {
-    grid.innerHTML = "";
-    if (viewMode === "month") {
-      grid.classList.remove("week-mode");
-      renderMonthView();
+  function formatDailyLabel(date) {
+    return date.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
+
+  /* ===== RENDER ROOT VIEW ===== */
+
+  function renderView() {
+    if (viewMode === "daily") {
+      dailyView.style.display = "block";
+      grid.style.display = "none";
+      renderDailyView();
     } else {
-      grid.classList.add("week-mode");
-      renderWeekView();
+      dailyView.style.display = "none";
+      grid.style.display = "grid";
+      if (viewMode === "week") {
+        grid.classList.add("week-mode");
+        renderWeekView();
+      } else {
+        grid.classList.remove("week-mode");
+        renderMonthView();
+      }
     }
   }
 
-  /* MONTH VIEW */
+  /* ===== DAILY VIEW (CHECKLIST) ===== */
+
+  function renderDailyView() {
+    dailyView.innerHTML = "";
+
+    const date = new Date(currentBaseDate);
+    monthLabel.textContent = formatDailyLabel(date);
+
+    const tasksForDate = tasks
+      .filter(t => occursOnDate(t, date))
+      .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
+
+    const pending = tasksForDate.filter(t => t.status !== "Done");
+    const done = tasksForDate.filter(t => t.status === "Done");
+
+    const pendingTitle = document.createElement("p");
+    pendingTitle.className = "daily-section-title";
+    pendingTitle.textContent = "Daily baby checklist";
+    dailyView.appendChild(pendingTitle);
+
+    const pendingList = document.createElement("ul");
+    pendingList.className = "daily-list";
+
+    if (pending.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "daily-empty";
+      empty.textContent = "No tasks for this day yet.";
+      dailyView.appendChild(empty);
+    } else {
+      pending.forEach(t => {
+        const li = document.createElement("li");
+        li.className = "daily-item";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = (t.status === "Done");
+        cb.onchange = () => {
+          const newStatus = cb.checked ? "Done" : "Not started";
+          updateDoc(doc(db, "tasks", t.id), { status: newStatus });
+        };
+        li.appendChild(cb);
+
+        const wrap = document.createElement("div");
+        wrap.className = "daily-item-text";
+        if (t.status === "Done") wrap.classList.add("done");
+
+        const main = document.createElement("div");
+        main.textContent = t.text || "(no description)";
+        wrap.appendChild(main);
+
+        const meta = document.createElement("div");
+        meta.className = "daily-item-meta";
+        const parts = [];
+        if (t.owner) parts.push(t.owner);
+        if (t.startTime) parts.push(t.startTime);
+        if (t.showOnCalendar === false) {
+          parts.push("Checklist only");
+        } else {
+          parts.push("On calendar");
+        }
+        meta.textContent = parts.join(" · ");
+        wrap.appendChild(meta);
+
+        li.appendChild(wrap);
+        pendingList.appendChild(li);
+      });
+
+      dailyView.appendChild(pendingList);
+    }
+
+    const doneTitle = document.createElement("p");
+    doneTitle.className = "daily-section-title";
+    doneTitle.textContent = "Completed";
+    dailyView.appendChild(doneTitle);
+
+    if (done.length === 0) {
+      const emptyDone = document.createElement("div");
+      emptyDone.className = "daily-empty";
+      emptyDone.textContent = "Nothing completed yet.";
+      dailyView.appendChild(emptyDone);
+    } else {
+      const doneList = document.createElement("ul");
+      doneList.className = "daily-list";
+      done.forEach(t => {
+        const li = document.createElement("li");
+        li.className = "daily-item";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = true;
+        cb.onchange = () => {
+          const newStatus = cb.checked ? "Done" : "Not started";
+          updateDoc(doc(db, "tasks", t.id), { status: newStatus });
+        };
+        li.appendChild(cb);
+
+        const wrap = document.createElement("div");
+        wrap.className = "daily-item-text done";
+
+        const main = document.createElement("div");
+        main.textContent = t.text || "(no description)";
+        wrap.appendChild(main);
+
+        const meta = document.createElement("div");
+        meta.className = "daily-item-meta";
+        const parts = [];
+        if (t.owner) parts.push(t.owner);
+        if (t.startTime) parts.push(t.startTime);
+        if (t.showOnCalendar === false) {
+          parts.push("Checklist only");
+        } else {
+          parts.push("On calendar");
+        }
+        meta.textContent = parts.join(" · ");
+        wrap.appendChild(meta);
+
+        li.appendChild(wrap);
+        doneList.appendChild(li);
+      });
+      dailyView.appendChild(doneList);
+    }
+  }
+
+  /* ===== MONTH VIEW ===== */
 
   function renderMonthView() {
+    grid.innerHTML = "";
+
     const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     days.forEach(d => {
       const el = document.createElement("div");
@@ -609,7 +828,7 @@
     cell.appendChild(header);
 
     const matches = tasks
-      .filter(t => occursOnDate(t, date))
+      .filter(t => t.showOnCalendar !== false && occursOnDate(t, date))
       .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
 
     if (matches.length) {
@@ -648,9 +867,11 @@
     grid.appendChild(cell);
   }
 
-  /* WEEK VIEW: time column + 7 days */
+  /* ===== WEEK VIEW ===== */
 
   function renderWeekView() {
+    grid.innerHTML = "";
+
     const base = new Date(currentBaseDate);
     const start = new Date(base);
     start.setDate(base.getDate() - base.getDay()); // Sunday
@@ -697,7 +918,7 @@
         cell.className = "week-cell";
 
         const matches = tasks
-          .filter(t => occursOnDate(t, date))
+          .filter(t => t.showOnCalendar !== false && occursOnDate(t, date))
           .filter(t => {
             if (row.value === null) return !t.startTime;
             if (!t.startTime) return false;
@@ -719,7 +940,7 @@
           const label = document.createElement("span");
           label.className = "week-task-text";
           if (t.status === "Done") label.classList.add("done");
-          // In week view we HIDE the time text; time is implied by the row
+          // No time text here; time is implied by the row
           label.textContent = t.text;
           wrap.appendChild(label);
 
@@ -731,7 +952,7 @@
     });
   }
 
-  /* TASK LIST WITH EDIT SUPPORT */
+  /* ===== TASK LIST (with edit + showOnCalendar info) ===== */
 
   function renderTaskList() {
     const list = document.getElementById("task-list");
@@ -779,12 +1000,21 @@
           newFreq = t.frequency || "once";
         }
 
+        let showCalPrompt = prompt(
+          "Show on calendar? (yes/no)",
+          t.showOnCalendar === false ? "no" : "yes"
+        );
+        if (showCalPrompt === null) return;
+        showCalPrompt = showCalPrompt.trim().toLowerCase();
+        const showOnCalendar = (showCalPrompt === "yes" || showCalPrompt === "y");
+
         await updateDoc(doc(db, "tasks", t.id), {
           text: newText.trim() || "(no description)",
           owner: newOwner.trim() || "Family",
           startDate: newDate,
           startTime: newTime,
-          frequency: newFreq
+          frequency: newFreq,
+          showOnCalendar
         });
       };
       btnWrap.appendChild(editBtn);
@@ -813,7 +1043,7 @@
 
       const timeTag = document.createElement("span");
       timeTag.className = "tag time";
-      timeTag.textContent = t.startTime ? t.startTime : "All day";
+      timeTag.textContent = t.startTime ? t.startTime : "All day / no time";
       meta.appendChild(timeTag);
 
       const freqTag = document.createElement("span");
@@ -823,6 +1053,12 @@
         t.frequency === "weekly" ? "Weekly" :
         t.frequency === "monthly" ? "Monthly" : "One time";
       meta.appendChild(freqTag);
+
+      const calTag = document.createElement("span");
+      calTag.className = "tag calendar-flag";
+      calTag.textContent =
+        t.showOnCalendar === false ? "Checklist only" : "On calendar";
+      meta.appendChild(calTag);
 
       li.appendChild(meta);
 
@@ -851,7 +1087,7 @@
     });
   }
 
-  /* ADD TASK */
+  /* ===== ADD TASK ===== */
 
   document.getElementById("add-button").onclick = async () => {
     const text = document.getElementById("task-input").value.trim();
@@ -859,6 +1095,7 @@
     const date = document.getElementById("task-date").value;
     const time = document.getElementById("task-time").value;
     const freq = document.getElementById("task-frequency").value;
+    const showOnCalendar = document.getElementById("task-show-calendar").checked;
 
     if (!text || !date) {
       alert("Please fill the task and date");
@@ -871,58 +1108,67 @@
       startDate: date,
       startTime: time || "",
       frequency: freq,
-      status: "Not started"
+      status: "Not started",
+      showOnCalendar // default false (unchecked) → checklist-only
     });
 
     document.getElementById("task-input").value = "";
     document.getElementById("task-owner").value = "";
     document.getElementById("task-time").value = "";
+    document.getElementById("task-show-calendar").checked = false;
   };
 
-  /* VIEW TOGGLES */
+  /* ===== TAB HANDLERS ===== */
 
-  viewMonthBtn.onclick = () => {
-    viewMode = "month";
-    viewMonthBtn.classList.add("active");
-    viewWeekBtn.classList.remove("active");
-    renderCalendar();
-  };
+  function setActiveTab(mode) {
+    viewMode = mode;
+    tabDaily.classList.remove("active");
+    tabWeek.classList.remove("active");
+    tabMonth.classList.remove("active");
+    if (mode === "daily") tabDaily.classList.add("active");
+    if (mode === "week") tabWeek.classList.add("active");
+    if (mode === "month") tabMonth.classList.add("active");
+    renderView();
+  }
 
-  viewWeekBtn.onclick = () => {
-    viewMode = "week";
-    viewWeekBtn.classList.add("active");
-    viewMonthBtn.classList.remove("active");
-    renderCalendar();
-  };
+  tabDaily.onclick = () => setActiveTab("daily");
+  tabWeek.onclick = () => setActiveTab("week");
+  tabMonth.onclick = () => setActiveTab("month");
 
-  /* PREV / NEXT */
+  /* ===== PREV / NEXT ===== */
 
-  document.getElementById("prev-month").onclick = () => {
+  document.getElementById("prev-range").onclick = () => {
     if (viewMode === "month") {
       currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
-    } else {
+    } else if (viewMode === "week") {
       currentBaseDate.setDate(currentBaseDate.getDate() - 7);
+    } else {
+      currentBaseDate.setDate(currentBaseDate.getDate() - 1);
     }
-    renderCalendar();
+    renderView();
   };
 
-  document.getElementById("next-month").onclick = () => {
+  document.getElementById("next-range").onclick = () => {
     if (viewMode === "month") {
       currentBaseDate.setMonth(currentBaseDate.getMonth() + 1);
-    } else {
+    } else if (viewMode === "week") {
       currentBaseDate.setDate(currentBaseDate.getDate() + 7);
+    } else {
+      currentBaseDate.setDate(currentBaseDate.getDate() + 1);
     }
-    renderCalendar();
+    renderView();
   };
 
-  // Firestore live updates
+  /* ===== FIRESTORE LIVE UPDATES ===== */
+
   onSnapshot(tasksCollection, snap => {
     tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderCalendar();
+    renderView();
     renderTaskList();
   });
 
-  renderCalendar();
+  // initial
+  renderView();
 </script>
 
 </body>

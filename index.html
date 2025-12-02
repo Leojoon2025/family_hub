@@ -622,7 +622,8 @@
   }
 
   function isDoneForDate(task, dateKey) {
-    return task.status === "Done" && task.lastCompletedDate === dateKey;
+    const arr = Array.isArray(task.completedDates) ? task.completedDates : [];
+    return arr.includes(dateKey);
   }
 
   function formatMonthLabel(date) {
@@ -702,14 +703,14 @@
         cb.type = "checkbox";
         cb.checked = false;
         cb.onchange = () => {
-          const checked = cb.checked;
-          const updates = { status: checked ? "Done" : "Not started" };
-          if (checked) {
-            updates.lastCompletedDate = dayKey;
-          } else {
-            updates.lastCompletedDate = "";
+          const arr = Array.isArray(t.completedDates) ? [...t.completedDates] : [];
+          if (cb.checked && !arr.includes(dayKey)) {
+            arr.push(dayKey);
+          } else if (!cb.checked) {
+            const idx = arr.indexOf(dayKey);
+            if (idx >= 0) arr.splice(idx, 1);
           }
-          updateDoc(doc(db, "tasks", t.id), updates);
+          updateDoc(doc(db, "tasks", t.id), { completedDates: arr });
         };
         li.appendChild(cb);
 
@@ -761,14 +762,14 @@
         cb.type = "checkbox";
         cb.checked = true;
         cb.onchange = () => {
-          const checked = cb.checked;
-          const updates = { status: checked ? "Done" : "Not started" };
-          if (checked) {
-            updates.lastCompletedDate = dayKey;
-          } else {
-            updates.lastCompletedDate = "";
+          const arr = Array.isArray(t.completedDates) ? [...t.completedDates] : [];
+          if (cb.checked && !arr.includes(dayKey)) {
+            arr.push(dayKey);
+          } else if (!cb.checked) {
+            const idx = arr.indexOf(dayKey);
+            if (idx >= 0) arr.splice(idx, 1);
           }
-          updateDoc(doc(db, "tasks", t.id), updates);
+          updateDoc(doc(db, "tasks", t.id), { completedDates: arr });
         };
         li.appendChild(cb);
 
@@ -963,7 +964,6 @@
           const label = document.createElement("span");
           label.className = "week-task-text";
           if (t.status === "Done") label.classList.add("done");
-          // No time text here; time is implied by the row
           label.textContent = t.text;
           wrap.appendChild(label);
 
@@ -975,7 +975,7 @@
     });
   }
 
-  /* ===== TASK LIST (with edit + showOnCalendar info) ===== */
+  /* ===== TASK LIST (with edit + calendar info) ===== */
 
   function renderTaskList() {
     const list = document.getElementById("task-list");
@@ -1038,7 +1038,6 @@
           startTime: newTime,
           frequency: newFreq,
           showOnCalendar
-          // keep lastCompletedDate as is
         });
       };
       btnWrap.appendChild(editBtn);
@@ -1084,10 +1083,12 @@
         t.showOnCalendar === false ? "Checklist only" : "On calendar";
       meta.appendChild(calTag);
 
-      if (t.lastCompletedDate) {
+      const arr = Array.isArray(t.completedDates) ? t.completedDates : [];
+      if (arr.length > 0) {
+        const last = arr.slice().sort().slice(-1)[0];
         const lastTag = document.createElement("span");
         lastTag.className = "tag";
-        lastTag.textContent = "Last done: " + t.lastCompletedDate;
+        lastTag.textContent = "Last done: " + last;
         meta.appendChild(lastTag);
       }
 
@@ -1112,11 +1113,12 @@
       status.onchange = () => {
         const newStatus = status.value;
         const updates = { status: newStatus };
+        // Optional: when user sets Done here, record today as completed once.
         if (newStatus === "Done") {
           const todayKey = formatDateKey(new Date());
-          updates.lastCompletedDate = todayKey;
-        } else {
-          updates.lastCompletedDate = "";
+          const arr2 = Array.isArray(t.completedDates) ? [...t.completedDates] : [];
+          if (!arr2.includes(todayKey)) arr2.push(todayKey);
+          updates.completedDates = arr2;
         }
         updateDoc(doc(db, "tasks", t.id), updates);
       };
@@ -1150,7 +1152,7 @@
       frequency: freq,
       status: "Not started",
       showOnCalendar,
-      lastCompletedDate: ""
+      completedDates: []   // nothing done yet
     });
 
     document.getElementById("task-input").value = "";

@@ -589,6 +589,13 @@
     return ownerMap[key];
   }
 
+  function formatDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   function getTimeMinutes(task) {
     if (!task.startTime) return 24 * 60;
     const parts = task.startTime.split(":");
@@ -612,6 +619,10 @@
     }
     if (task.frequency === "monthly") return d.getDate() === start.getDate();
     return d.toDateString() === start.toDateString();
+  }
+
+  function isDoneForDate(task, dateKey) {
+    return task.status === "Done" && task.lastCompletedDate === dateKey;
   }
 
   function formatMonthLabel(date) {
@@ -659,14 +670,15 @@
     dailyView.innerHTML = "";
 
     const date = new Date(currentBaseDate);
+    const dayKey = formatDateKey(date);
     monthLabel.textContent = formatDailyLabel(date);
 
     const tasksForDate = tasks
       .filter(t => occursOnDate(t, date))
       .sort((a, b) => getTimeMinutes(a) - getTimeMinutes(b));
 
-    const pending = tasksForDate.filter(t => t.status !== "Done");
-    const done = tasksForDate.filter(t => t.status === "Done");
+    const pending = tasksForDate.filter(t => !isDoneForDate(t, dayKey));
+    const done = tasksForDate.filter(t => isDoneForDate(t, dayKey));
 
     const pendingTitle = document.createElement("p");
     pendingTitle.className = "daily-section-title";
@@ -679,7 +691,7 @@
     if (pending.length === 0) {
       const empty = document.createElement("div");
       empty.className = "daily-empty";
-      empty.textContent = "No tasks for this day yet.";
+      empty.textContent = "No tasks for this day yet, or everything is completed.";
       dailyView.appendChild(empty);
     } else {
       pending.forEach(t => {
@@ -688,16 +700,21 @@
 
         const cb = document.createElement("input");
         cb.type = "checkbox";
-        cb.checked = (t.status === "Done");
+        cb.checked = false;
         cb.onchange = () => {
-          const newStatus = cb.checked ? "Done" : "Not started";
-          updateDoc(doc(db, "tasks", t.id), { status: newStatus });
+          const checked = cb.checked;
+          const updates = { status: checked ? "Done" : "Not started" };
+          if (checked) {
+            updates.lastCompletedDate = dayKey;
+          } else {
+            updates.lastCompletedDate = "";
+          }
+          updateDoc(doc(db, "tasks", t.id), updates);
         };
         li.appendChild(cb);
 
         const wrap = document.createElement("div");
         wrap.className = "daily-item-text";
-        if (t.status === "Done") wrap.classList.add("done");
 
         const main = document.createElement("div");
         main.textContent = t.text || "(no description)";
@@ -744,8 +761,14 @@
         cb.type = "checkbox";
         cb.checked = true;
         cb.onchange = () => {
-          const newStatus = cb.checked ? "Done" : "Not started";
-          updateDoc(doc(db, "tasks", t.id), { status: newStatus });
+          const checked = cb.checked;
+          const updates = { status: checked ? "Done" : "Not started" };
+          if (checked) {
+            updates.lastCompletedDate = dayKey;
+          } else {
+            updates.lastCompletedDate = "";
+          }
+          updateDoc(doc(db, "tasks", t.id), updates);
         };
         li.appendChild(cb);
 
@@ -1015,6 +1038,7 @@
           startTime: newTime,
           frequency: newFreq,
           showOnCalendar
+          // keep lastCompletedDate as is
         });
       };
       btnWrap.appendChild(editBtn);
@@ -1060,6 +1084,13 @@
         t.showOnCalendar === false ? "Checklist only" : "On calendar";
       meta.appendChild(calTag);
 
+      if (t.lastCompletedDate) {
+        const lastTag = document.createElement("span");
+        lastTag.className = "tag";
+        lastTag.textContent = "Last done: " + t.lastCompletedDate;
+        meta.appendChild(lastTag);
+      }
+
       li.appendChild(meta);
 
       const actions = document.createElement("div");
@@ -1078,8 +1109,17 @@
         if (t.status === s) opt.selected = true;
         status.appendChild(opt);
       });
-      status.onchange = () =>
-        updateDoc(doc(db, "tasks", t.id), { status: status.value });
+      status.onchange = () => {
+        const newStatus = status.value;
+        const updates = { status: newStatus };
+        if (newStatus === "Done") {
+          const todayKey = formatDateKey(new Date());
+          updates.lastCompletedDate = todayKey;
+        } else {
+          updates.lastCompletedDate = "";
+        }
+        updateDoc(doc(db, "tasks", t.id), updates);
+      };
       actions.appendChild(status);
 
       li.appendChild(actions);
@@ -1109,7 +1149,8 @@
       startTime: time || "",
       frequency: freq,
       status: "Not started",
-      showOnCalendar // default false (unchecked) → checklist-only
+      showOnCalendar,
+      lastCompletedDate: ""
     });
 
     document.getElementById("task-input").value = "";
